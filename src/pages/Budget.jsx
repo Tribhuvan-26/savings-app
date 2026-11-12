@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { motion } from 'motion/react'
 import { money, useLedger } from '../data'
-import { Meme, budgetMeme } from '../fun'
+import { Meme } from '../fun'
+import { budgetMood, pool } from '../memes'
 import { celebrate, success } from '../peak/feel'
 import { X } from 'lucide-react'
 import { Art, Bar, Brush, Card, CountUp, Kicker, Note, Reveal, SectionHead, Stack, Stats } from '../ui'
@@ -183,7 +184,7 @@ export default function Budget() {
             </Card>
           </div>
 
-          <Meme {...budgetMeme(s.used, s.budget > 0)} className="meme-row" />
+          <Meme pool={pool([budgetMood(s.used, s.budget > 0)], s.used)} className="meme-row" />
 
           {s.accounts.length > 0 && <Accounts s={s} setBalance={setBalance} />}
           <CashCard s={s} addCash={addCash} deleteCash={deleteCash} setBalance={setBalance} />

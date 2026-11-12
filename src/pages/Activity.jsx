@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { motion } from 'motion/react'
 import { Search } from 'lucide-react'
 import { money, useLedger } from '../data'
+import { Meme } from '../fun'
+import { budgetMood, pool } from '../memes'
 import { Art, Empty, Kicker, Note, Reveal, Stack, TxTag, item } from '../ui'
 
 const FILTERS = [['all', 'All'], ['out', 'Spent'], ['in', 'Received']]
@@ -41,6 +43,8 @@ export default function Activity() {
           <Note>{s.recent.length} and counting</Note>
         </Reveal>
       </header>
+
+      <Meme pool={pool([budgetMood(s.used, s.budget > 0)], s.used)} tilt={-1.5} />
 
       <Reveal className="toolbar">
         <div className="search">

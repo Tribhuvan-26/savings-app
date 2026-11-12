@@ -766,7 +766,13 @@ input::placeholder, textarea::placeholder { color: var(--grey); opacity: 1; }
   overflow: hidden; border: var(--line); border-radius: 22px; box-shadow: 8px 8px 0 var(--ink); background: var(--ink);
   cursor: pointer; user-select: none;
 }
-.meme img { display: block; width: 100%; height: auto; min-height: 220px; object-fit: cover; }
+.meme { perspective: 900px; }
+.meme-frame { position: relative; width: 100%; }
+.meme img { display: block; width: 100%; height: auto; min-height: 220px; max-height: 460px; object-fit: cover; }
+.meme-blank { width: 100%; aspect-ratio: 4 / 3; background: radial-gradient(circle at 50% 45%, #2a2a2a, var(--ink) 70%); }
+.meme-wrap { margin: 8px auto 40px; }
+.meme-wrap .meme { margin: 0 auto; }
+.meme-tip { margin: 14px 0 0; text-align: center; font: 600 12px/1 var(--f-mono); letter-spacing: 0.06em; color: var(--grey); }
 .meme-top, .meme-bottom {
   position: absolute; left: 10px; right: 10px; text-align: center; color: var(--white);
   font: 400 clamp(26px, 7.5vw, 38px)/1 'Anton', 'Impact', sans-serif; text-transform: uppercase; letter-spacing: 0.02em;
@@ -774,7 +780,6 @@ input::placeholder, textarea::placeholder { color: var(--grey); opacity: 1; }
 }
 .meme-top { top: 10px; }
 .meme-bottom { bottom: 12px; }
-.meme-emoji { display: grid; place-items: center; width: 100%; aspect-ratio: 1; font-size: clamp(84px, 26vw, 120px); line-height: 1; }
 @media (prefers-reduced-motion: reduce) {
   .caret { animation: none; }
   .logo:hover .logo-art, .logo:active .logo-art { animation: none; }

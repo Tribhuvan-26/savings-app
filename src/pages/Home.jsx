@@ -3,7 +3,8 @@ import { motion } from 'motion/react'
 import { ArrowRight, PiggyBank } from 'lucide-react'
 import { money, useLedger } from '../data'
 import { MonthlySummary } from '../Summary'
-import { Typewriter } from '../fun'
+import { Meme, Typewriter } from '../fun'
+import { budgetMood, pool } from '../memes'
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 // three.js is big: load the coin after the page paints.
 const Coin3D = lazy(() => import('../peak/Coin3D'))
@@ -138,6 +139,10 @@ export default function Home() {
             ))}
           </motion.ul>
         </Stack>
+      </section>
+
+      <section className="wrap">
+        <Meme pool={pool([budgetMood(s.used, s.budget > 0), s.jar > 0 ? 'saving' : 'nosave'], s.used)} tilt={1.5} />
       </section>
 
       {/* ── Lists ── */}

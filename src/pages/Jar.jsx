@@ -1,6 +1,7 @@
 import { motion } from 'motion/react'
 import { money, useLedger } from '../data'
-import { CoinRain, Meme, jarMeme } from '../fun'
+import { CoinRain, Meme } from '../fun'
+import { pool } from '../memes'
 import { Art, Card, CountUp, Empty, Kicker, Note, Reveal, SectionHead, Stack, Stats, Sticker, item, list } from '../ui'
 
 export default function Jar() {
@@ -49,7 +50,7 @@ export default function Jar() {
         ['Drops this month', String(s.recent.filter(r => r.saved > 0 && new Date(r.time).getMonth() === s.now.getMonth()).length)],
       ]} />
 
-      <Meme {...jarMeme(s.jar)} tilt={2} className="meme-row" />
+      <Meme pool={pool([s.jar > 0 ? 'saving' : 'nosave'])} tilt={2} className="meme-row" />
 
       <SectionHead n="03" title="Latest drops" />
       {drops.length ? (

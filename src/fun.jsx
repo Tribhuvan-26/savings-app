@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { motion, useReducedMotion } from 'motion/react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { thud } from './peak/feel'
 
 // Rendered from src/logo.js by scripts/icons.mjs (same art as the launcher icon).
@@ -46,48 +46,35 @@ export function CoinRain({ count = 14 }) {
   )
 }
 
-// Classic templates, loaded from imgflip's CDN at runtime (not copied into this repo).
-const T = {
-  fry: ['https://i.imgflip.com/1bgw.jpg', 'Futurama Fry squinting'],
-  leo: ['https://i.imgflip.com/39t1o.jpg', 'Leonardo DiCaprio raising a glass'],
-  harold: ['https://i.imgflip.com/gk5el.jpg', 'Hide the Pain Harold smiling through pain'],
-  fine: ['https://i.imgflip.com/wxica.jpg', 'This Is Fine dog sitting in a burning room'],
-  disaster: ['https://i.imgflip.com/23ls.jpg', 'Disaster Girl smirking in front of a fire'],
-  rollsafe: ['https://i.imgflip.com/1h7in3.jpg', 'Roll Safe tapping his head'],
-  skeleton: ['https://i.imgflip.com/2fm6x.jpg', 'Skeleton still waiting on a bench'],
-}
+const pick = (n, not) => { if (n < 2) return 0; let i; do { i = Math.floor(Math.random() * n) } while (i === not); return i }
 
 /**
- * Internet meme, top/bottom caption style. If the image can't load (offline), the same joke shows as a big emoji.
+ * An internet meme from `pool` (src/memes.js), top/bottom caption style. A random one each visit; tap for another.
+ * If an image can't load (offline), the captions still show on an ink card.
  */
-export function Meme({ t, top, bottom, emoji, tilt = -2, className = '' }) {
-  const [src, alt] = T[t]
+export function Meme({ pool, tilt = -2, className = '' }) {
+  const [i, setI] = useState(() => pick(pool.length))
   const [broken, setBroken] = useState(false)
+  const m = pool[i % pool.length]
+  const next = () => { thud(); setBroken(false); setI(c => pick(pool.length, c)) }
   return (
-    <motion.figure className={`meme ${className}`} style={{ rotate: tilt }}
+    <div className={`meme-wrap ${className}`}>
+    <motion.figure className="meme" style={{ rotate: tilt }}
       initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }}
-      onTap={thud} whileTap={{ scale: 0.96, rotate: -tilt }} transition={{ type: 'spring', stiffness: 380, damping: 22 }}>
-      {broken
-        ? <span className="meme-emoji" aria-hidden="true">{emoji}</span>
-        : <img src={src} alt={`${alt} meme`} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setBroken(true)} />}
-      <span className="meme-top" aria-hidden="true">{top}</span>
-      <span className="meme-bottom" aria-hidden="true">{bottom}</span>
-      <figcaption className="sr">{top} / {bottom}</figcaption>
+      onTap={next} whileTap={{ scale: 0.96, rotate: -tilt }} transition={{ type: 'spring', stiffness: 380, damping: 22 }}>
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div key={i} className="meme-frame" initial={{ rotateY: -90, opacity: 0 }} animate={{ rotateY: 0, opacity: 1 }}
+          exit={{ rotateY: 90, opacity: 0 }} transition={{ duration: 0.22 }}>
+          {broken
+            ? <div className="meme-blank" />
+            : <img src={m.src} alt={`${m.alt} meme`} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setBroken(true)} />}
+          <span className="meme-top" aria-hidden="true">{m.top}</span>
+          {m.bottom && <span className="meme-bottom" aria-hidden="true">{m.bottom}</span>}
+        </motion.div>
+      </AnimatePresence>
+      <figcaption className="sr">{m.top}{m.bottom ? ` / ${m.bottom}` : ''}. Tap for another meme.</figcaption>
     </motion.figure>
+    <p className="meme-tip" aria-hidden="true">tap the meme for another one</p>
+    </div>
   )
-}
-
-/** How the month's going, meme edition. `used` = share of what you have that's spent (0..1+). */
-export function budgetMeme(used, hasBudget) {
-  if (!hasBudget) return { t: 'fry', emoji: '🤨', top: 'not sure if broke', bottom: 'or bank forgot to sms' }
-  if (used > 1) return { t: 'disaster', emoji: '🔥', top: 'my budget', bottom: 'me with UPI' }
-  if (used > 0.8) return { t: 'fine', emoji: '🫠', top: `${Math.round(used * 100)}% of my money gone`, bottom: 'this is fine' }
-  if (used > 0.5) return { t: 'harold', emoji: '🙂', top: 'checking my balance', bottom: "it's fine. i'm fine." }
-  return { t: 'leo', emoji: '🥂', top: 'still got money', bottom: 'this far into the month' }
-}
-
-export function jarMeme(jar) {
-  return jar > 0
-    ? { t: 'rollsafe', emoji: '🧠', top: "can't go broke", bottom: 'if you save the spare change' }
-    : { t: 'skeleton', emoji: '💀', top: 'me waiting', bottom: 'for my first savings' }
 }
