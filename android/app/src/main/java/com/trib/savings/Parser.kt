@@ -5,7 +5,7 @@ import java.math.BigDecimal
 // Pure Kotlin, no Android imports, so the unit test runs it on the JVM.
 
 /** Bump whenever parsing changes: the app rebuilds its ledger from the inbox. */
-const val PARSER_VERSION = 7
+const val PARSER_VERSION = 8
 const val UNKNOWN = "Unknown"
 
 /** `balance`: what the account holds after this txn, when the SMS says ("Avl Bal Rs 575.29"). */
@@ -13,7 +13,11 @@ data class Txn(val debit: Boolean, val paise: Long, val merchant: String, val ba
 
 private val I = RegexOption.IGNORE_CASE
 private val AMOUNT = Regex("""(?:rs\.?|inr|₹)\s*([\d,]+(?:\.\d{1,2})?)""", I)
-private val DEBIT = Regex("""\b(debited|spent|paid|sent|withdrawn|purchase|done for)\b""", I)
+// SBI leaves the currency out: "A/C X4989 debited by 1950.0 on date 12Nov26 trf to Google Play Refno 123"
+private val AMOUNT_BARE = Regex("""\b(?:debited|credited)\s+(?:by|for|with)\s+(?:rs\.?|inr|₹)?\s*([\d,]+(?:\.\d{1,2})?)""", I)
+// Setting up or changing an autopay mandate moves no money; the later "debited ... mandate" SMS is the payment.
+private val MANDATE_SETUP = Regex("""\bmandate\b.{0,80}?\b(?:created|registered|revoked|paused|modified|cancelled|updated)\b""", I)
+private val DEBIT =Regex("""\b(debited|spent|paid|sent|withdrawn|purchase|done for)\b""", I)
 // Payment gateways (PayU): "Transaction No. 1 for Rs. 41.00 done for L and T METRO RAIL HYDERABA... has succeeded"
 private val DONE_FOR = Regex("""\bdone for\s+([A-Za-z0-9][A-Za-z0-9 .&'-]{1,40}?)(?:\.{2,}|\s+has\b)""", I)
 private val CREDIT = Regex("""\b(credited|received|deposited|refunded)\b""", I)
@@ -23,16 +27,16 @@ private val PAYEE_CREDITED = Regex("""(?:rs\.?|inr|₹)\s*[\d,]+(?:\.\d{1,2})?\s
 // "Bal Rs 575.29", "Avl Bal Rs:5633.94", "Bal: Rs. 877.", "account balance is Rs 237.0"
 private val BALANCE = Regex("""\b(?:avl\.?\s*)?bal(?:ance)?\b[^\d]{0,15}?([\d,]+(?:\.\d{1,2})?)""", I)
 private val ATM = Regex("""\batm\b""", I)
-private const val END = """(?=\s+(?:on|ref|via|upi|avl|a/c|info)\b|[.,;(]|\s*$)"""
+private const val END = """(?=\s+(?:on|ref|refno|via|upi|avl|a/c|info)\b|[.,;(]|\s*$)"""
 private val PAID_TO = Regex("""\b(?:to|at|towards)\s+(?:vpa\s+)?([A-Za-z0-9@&_\- ]{2,40}?)$END""", I)
-// (?!you\b): IDBI's "If not used by you, call..." is not a sender.
-private val GOT_FROM = Regex("""\b(?:from|by)\s+(?:vpa\s+)?(?!you\b)([A-Za-z0-9@&_\- ]{2,40}?)$END""", I)
+// (?!you\b): IDBI's "If not used by you, call..." is not a sender; nor is the amount in SBI's "credited by Rs500".
+private val GOT_FROM = Regex("""\b(?:from|by)\s+(?:vpa\s+)?(?!you\b)(?!(?:rs\.?|inr|₹)\s*\d)([A-Za-z0-9@&_\- ]{2,40}?)$END""", I)
 
 fun parseSms(sender: String, body: String): Txn? {
     // Banks send from alphanumeric IDs (VM-HDFCBK). A plain phone number can't log a fake payment.
     if (sender.none { it.isLetter() }) return null
-    if (IGNORE.containsMatchIn(body)) return null
-    val amount = AMOUNT.find(body) ?: return null
+    if (IGNORE.containsMatchIn(body) || MANDATE_SETUP.containsMatchIn(body)) return null
+    val amount = AMOUNT.find(body) ?: AMOUNT_BARE.find(body) ?: return null
     val d = DEBIT.find(body)
     val c = CREDIT.find(body)
     // "debited from A/c ... credited to VPA x" contains both words: the first one wins.

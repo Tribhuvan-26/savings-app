@@ -859,3 +859,11 @@ input::placeholder, textarea::placeholder { color: var(--grey); opacity: 1; }
 }
 .update-x { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; background: transparent; color: var(--cream); cursor: pointer; }
 .update-go:focus-visible, .update-x:focus-visible { outline: 3px solid var(--cream); outline-offset: 2px; }
+
+/* Add a bank whose SMS have no balance (Budget → accounts card) */
+.acct-add { display: grid; gap: 8px; padding-top: 14px; border-top: 2px solid var(--ink); }
+.acct-add-title { margin: 0; font: 700 14px/1.2 var(--f-mono); letter-spacing: 0.06em; text-transform: uppercase; }
+.acct-add-hint { margin: 0; font: 500 14px/1.4 var(--f-body); color: var(--grey); }
+.acct-add-row { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.acct-add-row input { min-width: 0; min-height: 44px; padding: 0 12px; border: 2px solid var(--ink); border-radius: 12px; background: var(--white); font: 500 15px/1 var(--f-mono); box-sizing: border-box; }
+.acct-add-row input:focus-visible { outline: 3px solid var(--red); outline-offset: 2px; }

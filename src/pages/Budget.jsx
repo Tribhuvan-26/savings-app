@@ -121,6 +121,43 @@ function Fix({ bank, setBalance, label, placeholder = 'Wrong? Type real balance'
   )
 }
 
+/**
+ * For banks whose SMS never state a balance (SBI), so they'd never appear above: name + today's balance.
+ * Payments logged after that come off it automatically.
+ */
+function AddAccount({ setBalance }) {
+  const [name, setName] = useState('')
+  const [amt, setAmt] = useState('')
+  const [err, setErr] = useState('')
+  const submit = async e => {
+    e.preventDefault()
+    const key = name.trim().toUpperCase().replace(/[^A-Z0-9 ]/g, '').replace(/\s+/g, ' ')
+    const p = toPaise(amt)
+    if (!key) return setErr('Bank name, like SBI')
+    if (p == null) return setErr('Balance like 2500 or 2500.50')
+    setErr('')
+    try { await setBalance(key, p) } catch (x) { return setErr(`Not saved: ${x.message}`) }
+    success()
+    setName('')
+    setAmt('')
+  }
+  return (
+    <form className="acct-add" onSubmit={submit} noValidate>
+      <p className="acct-add-title">Bank missing? Add it</p>
+      <p className="acct-add-hint">For banks that don't show a balance in their SMS, like SBI.</p>
+      <div className="acct-add-row">
+        <label className="sr" htmlFor="add-bank">Bank name</label>
+        <input id="add-bank" placeholder="SBI" value={name} maxLength={20} onChange={e => setName(e.target.value)} />
+        <label className="sr" htmlFor="add-bal">Balance today</label>
+        <input id="add-bal" inputMode="decimal" placeholder="Balance" value={amt} onChange={e => setAmt(e.target.value)}
+          aria-invalid={!!err} aria-describedby={err ? 'add-err' : undefined} />
+        <button type="submit" className="text-btn">Add</button>
+      </div>
+      {err && <small id="add-err" className="red">{err}</small>}
+    </form>
+  )
+}
+
 function Accounts({ s, setBalance }) {
   return (
     <Card tone="cream" className="accounts-card">
@@ -141,6 +178,7 @@ function Accounts({ s, setBalance }) {
         Latest balance per account, from bank SMS or what you typed, minus payments logged since.
         Banks skip SMS for some payments, so fix a number here whenever it drifts.
       </p>
+      <AddAccount setBalance={setBalance} />
     </Card>
   )
 }
@@ -186,7 +224,7 @@ export default function Budget() {
 
           <Meme pool={pool([budgetMood(s.used, s.budget > 0)], s.used)} className="meme-row" />
 
-          {s.accounts.length > 0 && <Accounts s={s} setBalance={setBalance} />}
+          <Accounts s={s} setBalance={setBalance} />
           <CashCard s={s} addCash={addCash} deleteCash={deleteCash} setBalance={setBalance} />
 
           <Stats items={[

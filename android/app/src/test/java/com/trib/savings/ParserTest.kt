@@ -56,7 +56,19 @@ class ParserTest {
         assertEquals("UNIONB", bankOf("AX-UNIONB"))
     }
 
-    @Test fun payuGateway() = assertEquals(
+    @Test fun sbi() {
+        // Setting up autopay moves no money: ignored. The later debit is the payment.
+        assertNull(p("Your UPI-Mandate for Rs.1950.00 is successfully created towards Google Play from A/c No: XXXXXX1234. UMN:abc@ptyes. If not you, kindly report on 18001234. -SBI", "AD-SBIUPI-S"))
+        // No "Rs" before the amount, and "Refno" ends the payee name.
+        assertEquals(Txn(true, 195000, "Google Play"),
+            p("Dear UPI user A/C X1234 debited by 1950.0 on date 12Nov26 trf to Google Play Refno 123456789012. If not u? call 1800111109. -SBI", "AD-SBIUPI-S"))
+        assertEquals(Txn(true, 4000, "RAVI KUMAR"),
+            p("Dear UPI user A/C X1234 debited by 40.0 on date 12Nov26 trf to RAVI KUMAR Refno 123456789012. If not u? call 1800111109. -SBI", "JD-SBIUPI-S"))
+        assertEquals(Txn(false, 50000, UNKNOWN),
+            p("Dear SBI UPI User, ur A/cX1234 credited by Rs500 on 12Nov26 by (Ref no 123456789012)", "AD-SBIUPI-S"))
+    }
+
+    @Test fun payuGateway() =assertEquals(
         Txn(true, 4100, "L and T METRO RAIL HYDERABA"),
         p("Transaction No. 31761720214 for Rs. 41.00 done for L and T METRO RAIL HYDERABA... has succeeded Team PayU", "AX-PAYUIB-S"))
 
