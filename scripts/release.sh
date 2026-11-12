@@ -12,6 +12,12 @@ NOTES="${2:?add a one-line description of the update}"
 [ -f "$HOME/.savings-release/keystore.properties" ] || { echo "no release key in ~/.savings-release: updates would not install over the old app"; exit 1; }
 [ -z "$(git status --porcelain)" ] || { echo "commit or stash your changes first"; exit 1; }
 git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null && { echo "v$VERSION already exists"; exit 1; }
+case "$NOTES" in "what changed"|"notes"|"") echo "write real release notes: friends see them in the update banner"; exit 1 ;; esac
+LAST=$(git describe --tags --abbrev=0 2>/dev/null || true)
+# Only the version bump since the last release = nothing new to ship.
+if [ -n "$LAST" ] && [ -z "$(git diff --name-only "$LAST" HEAD -- . ':!android/app/build.gradle')" ]; then
+  echo "nothing changed since $LAST: make changes before releasing"; exit 1
+fi
 
 GRADLE=android/app/build.gradle
 CODE=$(( $(sed -n 's/^ *versionCode \([0-9]*\).*/\1/p' "$GRADLE") + 1 ))
