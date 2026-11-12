@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 
 .playwright-mcp
+
+# release APKs are attached to GitHub releases, not committed
+*.apk
