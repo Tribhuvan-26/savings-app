@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { Link } from 'react-router-dom'
 import { thud } from './peak/feel'
 import { Art } from './ui'
 
@@ -68,11 +69,12 @@ export function Meme({ pool, tilt = -2, className = '' }) {
             : <img src={m.src} alt={`${m.alt} meme`} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setBroken(true)} />}
           {m.top && <span className="meme-top" aria-hidden="true">{m.top}</span>}
           {m.bottom && <span className="meme-bottom" aria-hidden="true">{m.bottom}</span>}
+          {!broken && m.labels?.map(([t, x, y]) => <span key={t} className="meme-label" style={{ left: `${x}%`, top: `${y}%` }} aria-hidden="true">{t}</span>)}
         </motion.div>
       </AnimatePresence>
-      <figcaption className="sr">{[m.top, m.bottom].filter(Boolean).join(' / ')}. Tap for another meme.</figcaption>
+      <figcaption className="sr">{[m.top, m.bottom, ...(m.labels || []).map(l => l[0])].filter(Boolean).join(' / ')}. Tap for another meme.</figcaption>
     </motion.figure>
-    <p className="meme-tip" aria-hidden="true">tap the meme for another one</p>
+    <p className="meme-tip"><span aria-hidden="true">tap the meme for another one · </span><Link to="/settings#memes">add your own</Link></p>
     </div>
   )
 }

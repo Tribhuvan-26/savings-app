@@ -1,5 +1,6 @@
 // Meme library: Marvel / DC templates (loaded from imgflip's CDN at runtime, never copied into this repo).
 // Many stills already carry the movie line as a subtitle: those get only a short `top` for the money context.
+// Multi-panel ones get `labels` instead: [text, x%, y%], placed on the panel or person they're about.
 // Captions only where the scene needs one. `{pct}` in a caption becomes how much of your money is spent.
 // `mood` picks where a meme can show up:
 //   good: under half spent · mid: 50-80% · bad: 80-100% · broke: over, or no balance yet
@@ -20,10 +21,10 @@ export const MEMES = [
   { mood: 'mid', src: img('4i5d80.png'), alt: 'Nick Fury: "I recognize the council has made a decision, but given that it\'s a stupid-ass decision, I\'ve elected to ignore it"', top: 'my budget said no' },
 
   // bad
-  { mood: 'bad', src: img('2f3izw.jpg'), alt: 'Young Gamora asking Thanos what it cost', top: 'what did this month cost?', bottom: 'everything' },
+  { mood: 'bad', src: img('2f3izw.jpg'), alt: 'Young Gamora asking Thanos what it cost', labels: [['what did this month cost?', 25, 40], ['everything', 75, 92]] },
   { mood: 'bad', src: img('s2zxn.jpg'), alt: 'Wolverine holding a photo, remembering', top: 'remember when you had money?' },
   { mood: 'bad', src: img('3g5k6.jpg'), alt: 'Peter Parker crying', top: 'scrolling my UPI history' },
-  { mood: 'bad', src: img('31gy9w.jpg'), alt: 'Wanda: "You took everything from me." Thanos: "I don\'t even know who you are"', top: 'me vs online shopping' },
+  { mood: 'bad', src: img('31gy9w.jpg'), alt: 'Wanda: "You took everything from me." Thanos: "I don\'t even know who you are"', labels: [['me', 50, 8], ['online shopping', 50, 56]] },
 
   // broke
   { mood: 'broke', src: img('32jxka.jpg'), alt: 'Thanos: "Gone. Reduced to atoms"', top: 'my salary' },
@@ -32,7 +33,7 @@ export const MEMES = [
   { mood: 'broke', src: img('2hn32o.jpg'), alt: 'Doctor Strange looking into the futures', top: 'futures where i stay in budget', bottom: 'one' },
 
   // saving (jar has money)
-  { mood: 'saving', src: img('miq09.jpg'), alt: 'Loki: "I have an army." Tony: "We have a Hulk"', top: 'inflation: i have an army', bottom: 'me: i have a savings jar' },
+  { mood: 'saving', src: img('miq09.jpg'), alt: 'Loki: "I have an army." Tony: "We have a Hulk"', labels: [['inflation', 30, 42], ['me, with a savings jar', 50, 93]] },
   { mood: 'saving', src: img('31lb68.jpg'), alt: 'Thor lifting the hammer: "I\'m still worthy!"', top: 'my jar after a month of round-ups' },
 
   // nosave (jar empty)
@@ -40,17 +41,76 @@ export const MEMES = [
   { mood: 'nosave', src: img('2ug9y2.jpg'), alt: 'Loki: "I\'ve never met this man in my life"', top: 'me, looking at the savings jar' },
 
   // any
-  { mood: 'any', src: img('1tkjq9.jpg'), alt: 'Spider-Men pointing at each other', top: 'my spending', bottom: 'my salary' },
+  { mood: 'any', src: img('1tkjq9.jpg'), alt: 'Spider-Men pointing at each other', labels: [['my spending', 27, 55], ['my salary', 75, 55]] },
   { mood: 'any', src: img('2bq05e.jpg'), alt: 'T\'Challa holding up a hand', top: 'paying full price', bottom: "we don't do that here" },
   { mood: 'any', src: img('3d6lbp.jpg'), alt: 'Joker: "You wouldn\'t get it"', top: 'me logging every ₹10' },
+
+  // ── more ──
+  { mood: 'good', src: img('3bp4vk.jpg'), alt: 'Thor: "Because that\'s what heroes do"', top: 'paying friends back on time' },
+  { mood: 'good', src: img('63c62i.jpg'), alt: 'Doc Ock: "The power of the sun in the palm of my hand"', top: 'me holding ₹500 on the 28th' },
+  { mood: 'good', src: img('2jay5q.jpg'), alt: 'Peter Parker without and with glasses', labels: [['my spending', 75, 25], ['my spending with the app', 75, 75]] },
+
+  { mood: 'mid', src: img('454qs6.png'), alt: 'Joker: "Do I really look like a guy with a plan?"', top: 'me on the 1st of the month' },
+  { mood: 'mid', src: img('3o3dk5.png'), alt: 'Doc Ock: "There\'s three, actually"', top: '"i only have one subscription"' },
+  { mood: 'mid', src: img('30rum6.png'), alt: 'Drax: "I\'ve mastered the ability of standing so incredibly still that I become invisible to the eye"', top: 'me hiding from my budget' },
+  { mood: 'mid', src: img('8yw3s3.jpg'), alt: 'The Thing: "Say that again?"', top: '"just one more online order"' },
+  { mood: 'mid', src: img('2g38ky.jpg'), alt: 'Hela: "You can\'t defeat me." Thor: "I know, but he can"', labels: [['my budget', 50, 18], ['food delivery', 50, 92]] },
+  { mood: 'mid', src: img('29egnf.jpg'), alt: 'Aquaman sneaking up behind Superman', labels: [['me, finally saving', 62, 45], ['surprise expenses', 20, 64]] },
+
+  { mood: 'bad', src: img('361ryn.jpg'), alt: 'Loki falling through a portal', top: 'my balance', bottom: 'falling for 30 days straight' },
+  { mood: 'bad', src: img('39fcqj.png'), alt: 'Ant-Man: "What the hell happened here?"', top: 'me opening my bank app' },
+  { mood: 'bad', src: img('1476d.jpg'), alt: 'Shocked Batman', top: 'that ₹999 subscription i forgot' },
+  { mood: 'bad', src: img('pms7g.jpg'), alt: 'Wolverine walking away from an explosion', top: 'me closing the bank app' },
+  { mood: 'bad', src: img('28c6qe.jpg'), alt: 'Drax and Mantis laughing', top: 'my friends seeing my balance' },
+
+  { mood: 'broke', src: img('378dxg.jpg'), alt: 'Mysterio: "Now this is an Avengers level threat"', top: 'month end with ₹50 left' },
+  { mood: 'broke', src: img('31wp0l.jpg'), alt: 'Hawkeye: "Don\'t do that. Don\'t give me hope"', top: 'bank: ₹1 credited' },
+  { mood: 'broke', src: img('31xbl1.jpg'), alt: 'Black Widow: "Let me go." Hawkeye: "No"', labels: [['my last ₹100', 50, 8], ['me', 20, 62]] },
+  { mood: 'broke', src: img('4j59hf.jpg'), alt: 'Kingpin: "Business is boomin\'"', top: 'food apps when i get paid' },
+
+  { mood: 'saving', src: img('31umw7.jpg'), alt: 'Hulk handing Ant-Man a taco', labels: [['me, after saving ₹50', 66, 12], ['also me', 30, 62]] },
+  { mood: 'saving', src: img('19e5ji.jpg'), alt: 'Deadpool gasping', top: 'the jar crossed ₹100' },
+  { mood: 'saving', src: img('3017ei.png'), alt: 'Drax: "I, too, am extraordinarily humble"', top: 'me after saving ₹100' },
+  { mood: 'saving', src: img('3xjuz3.jpg'), alt: 'Bruce Banner: "That\'s my secret, Cap"', top: 'my secret to saving?', bottom: "i'm always broke" },
+
+  { mood: 'nosave', src: img('6q75zl.jpg'), alt: 'Peacemaker: "He does exactly what I do. But better"', top: 'my friend who actually saves' },
+
+  { mood: 'any', src: img('1d0w4v.jpg'), alt: 'Thor happy, then sad', labels: [['payday', 50, 8], ['rent day', 50, 58]] },
+  { mood: 'any', src: img('30f2oa.jpg'), alt: 'Tony Stark: "Everywhere I go, I see his face"', top: 'ads after one online order' },
+  { mood: 'any', src: img('37g1br.png'), alt: 'Thanos: "Perhaps I treated you too harshly"', top: 'me to my budget on the 1st' },
+  { mood: 'any', src: img('40m73k.png'), alt: 'Green Goblin: "You and I are not so different"', top: 'me to my broke friend' },
+  { mood: 'any', src: img('19e54v.jpg'), alt: 'Black Widow, arms crossed, not impressed', top: '"let\'s split it equally"' },
 ]
 
 /** Moods for how the month is going (`used` = share of your money spent). */
 export const budgetMood = (used, hasBudget) =>
   !hasBudget || used > 1 ? 'broke' : used > 0.8 ? 'bad' : used > 0.5 ? 'mid' : 'good'
 
-/** All memes for these moods (plus the 'any' ones), with {pct} filled in. */
+/** All memes for these moods (plus the 'any' ones and your own), with {pct} filled in. */
 export function pool(moods, pct = 0) {
   const fill = s => s?.replace('{pct}', `${Math.round(pct * 100)}%`)
-  return MEMES.filter(m => m.mood === 'any' || moods.includes(m.mood)).map(m => ({ ...m, top: fill(m.top), bottom: fill(m.bottom) }))
+  return [...MEMES.filter(m => m.mood === 'any' || moods.includes(m.mood)), ...myMemes()]
+    .map(m => ({ ...m, top: fill(m.top), bottom: fill(m.bottom) }))
 }
+
+// Your own memes: picked from the gallery, shrunk to a small JPEG and kept on the phone in localStorage
+// (survives app updates). They show up everywhere, mixed in with the rest.
+// ponytail: localStorage holds ~5 MB, about 60 memes at this size; move to IndexedDB if people want more
+const MINE = 'savings.memes'
+export const myMemes = () => { try { return JSON.parse(localStorage.getItem(MINE)) || [] } catch { return [] } }
+const saveMine = list => localStorage.setItem(MINE, JSON.stringify(list))
+
+/** Shrink a picked image (longest side 720px) and save it with optional captions. Throws if storage is full. */
+export async function addMyMeme(file, top, bottom) {
+  const bmp = await createImageBitmap(file)
+  const k = Math.min(1, 720 / Math.max(bmp.width, bmp.height))
+  const c = document.createElement('canvas')
+  c.width = Math.round(bmp.width * k)
+  c.height = Math.round(bmp.height * k)
+  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height)
+  const m = { id: Date.now(), mood: 'any', src: c.toDataURL('image/jpeg', 0.8), alt: 'Your meme', top: top.trim(), bottom: bottom.trim() }
+  saveMine([...myMemes(), m]) // throws QuotaExceededError when full
+  return m
+}
+
+export const deleteMyMeme = id => saveMine(myMemes().filter(m => m.id !== id))

@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { CircleAlert, ShieldCheck } from 'lucide-react'
+import { CircleAlert, ImagePlus, ShieldCheck, X } from 'lucide-react'
+import { useLocation } from 'react-router-dom'
 import { isNative, openNotifAccess, useLedger } from '../data'
 import { Art, Brush, Card, Kicker, Note, Reveal, Stack } from '../ui'
 import { success } from '../peak/feel'
+import { addMyMeme, deleteMyMeme, myMemes } from '../memes'
 
 function Field({ id, label, hint, error, prefix, suffix, ...input }) {
   const described = [hint && `${id}-hint`, error && `${id}-err`].filter(Boolean).join(' ') || undefined
@@ -21,6 +23,69 @@ function Field({ id, label, hint, error, prefix, suffix, ...input }) {
   )
 }
 
+/** Add your own memes from the gallery. They're mixed in with the built-in ones everywhere. */
+function MyMemes() {
+  const [list, setList] = useState(myMemes)
+  const [file, setFile] = useState(null)
+  const [preview, setPreview] = useState('')
+  const [top, setTop] = useState('')
+  const [bottom, setBottom] = useState('')
+  const [err, setErr] = useState('')
+  useEffect(() => () => preview && URL.revokeObjectURL(preview), [preview])
+  const pick = e => {
+    const f = e.target.files?.[0]
+    e.target.value = '' // picking the same picture again still fires onChange
+    if (!f) return
+    setErr('')
+    setFile(f)
+    setPreview(URL.createObjectURL(f))
+  }
+  const submit = async e => {
+    e.preventDefault()
+    if (!file) return setErr('Pick a picture first')
+    try { await addMyMeme(file, top, bottom) } catch (x) {
+      return setErr(x?.name === 'QuotaExceededError' ? 'No room left for memes: delete one of yours first' : `Couldn't add it: ${x.message}`)
+    }
+    success()
+    setList(myMemes())
+    setFile(null)
+    setPreview('')
+    setTop('')
+    setBottom('')
+  }
+  const remove = id => { deleteMyMeme(id); setList(myMemes()) }
+  return (
+    <Card tone="cream" className="my-memes">
+      <h2 className="card-title" id="memes">Your memes</h2>
+      <p className="hint">Add any picture from your phone. It shows up with the other memes, on this phone only.</p>
+      <form className="form" onSubmit={submit} noValidate>
+        <label className="meme-pick">
+          <input type="file" accept="image/*" onChange={pick} className="sr" aria-describedby={err ? 'meme-err' : undefined} />
+          {preview
+            ? <img src={preview} alt="Picked picture" />
+            : <span><ImagePlus size={28} aria-hidden="true" /> Pick a picture</span>}
+        </label>
+        <Field id="meme-top" label="Top text (optional)" value={top} onChange={e => setTop(e.target.value)} maxLength={60} />
+        <Field id="meme-bottom" label="Bottom text (optional)" value={bottom} onChange={e => setBottom(e.target.value)} maxLength={60} />
+        {err && <p className="err" id="meme-err"><CircleAlert size={15} aria-hidden="true" /> {err}</p>}
+        <Brush type="submit">Add meme</Brush>
+      </form>
+      {list.length > 0 && (
+        <ul className="my-meme-list" aria-label="Your memes">
+          {list.map(m => (
+            <li key={m.id}>
+              <img src={m.src} alt={[m.top, m.bottom].filter(Boolean).join(' / ') || 'Your meme'} />
+              <button type="button" className="my-meme-del" onClick={() => remove(m.id)} aria-label="Delete this meme">
+                <X size={18} aria-hidden="true" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  )
+}
+
 export default function Settings() {
   const { settings, save, smsAccess, notifAccess } = useLedger()
   const [f, setF] = useState({ budget: settings.budget, goal: settings.goal, pct: settings.pct, sheet: settings.sheet, me: settings.me })
@@ -28,6 +93,9 @@ export default function Settings() {
   const [err, setErr] = useState({})
   const [toast, setToast] = useState(null)
   const set = k => e => setF({ ...f, [k]: e.target.value })
+  const { hash } = useLocation()
+  // "add yours" under a meme links to /settings#memes
+  useEffect(() => { if (hash === '#memes') setTimeout(() => document.getElementById('memes')?.scrollIntoView({ behavior: 'smooth' }), 300) }, [hash])
 
   useEffect(() => {
     if (!toast) return
@@ -111,6 +179,7 @@ export default function Settings() {
         </Card>
 
         <Stack className="side-stack">
+          <MyMemes />
           <Card tone="ink" className="import-card">
             <h2 className="card-title">Automatic</h2>
             <p className="import-copy">
