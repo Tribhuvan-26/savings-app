@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Savings</string>
+    <string name="title_activity_main">Savings</string>
+    <string name="package_name">com.trib.savings</string>
+    <string name="custom_url_scheme">com.trib.savings</string>
+</resources>
