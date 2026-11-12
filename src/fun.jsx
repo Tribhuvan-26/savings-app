@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { thud } from './peak/feel'
+import { Art } from './ui'
 
-// Rendered from resources/logo-source.jpg by scripts/icons.py (same art as the launcher icon).
-const LOGO = `${import.meta.env.BASE_URL}logo.png`
-
-/** The app logo (ornament), same art as the launcher icon. Decorative: the link around it has the name. */
+/** The app logo: the ₹ coin, same shapes as the launcher icon (scripts/icons.py). Decorative: the link around it has the name. */
 export function LogoMark({ size = 40, className = '' }) {
-  return <img src={LOGO} width={size} height={size} alt="" className={`mark ${className}`} draggable="false" />
+  return <Art name="coin" size={size} className={`mark ${className}`} />
 }
 
 /** Types its text out once, terminal style, with a blinking cursor. Shows it whole if you prefer less motion. */
