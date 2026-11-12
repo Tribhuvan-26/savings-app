@@ -43,6 +43,7 @@ const toPaise = v => (/^\d+(\.\d{1,2})?$/.test(v.trim()) ? Math.round(parseFloat
 function CashCard({ s, addCash, deleteCash, setBalance }) {
   const [amt, setAmt] = useState('')
   const [note, setNote] = useState('')
+  const [online, setOnline] = useState(false)
   const [err, setErr] = useState('')
   const submit = async e => {
     e.preventDefault()
@@ -50,7 +51,7 @@ function CashCard({ s, addCash, deleteCash, setBalance }) {
     if (!p) return setErr('Amount like 40 or 12.50')
     setErr('')
     const form = e.currentTarget
-    try { await addCash(p, note) } catch (x) { return setErr(`Not saved: ${x.message}`) }
+    try { await addCash(p, note, online) } catch (x) { return setErr(`Not saved: ${x.message}`) }
     const r = form.getBoundingClientRect()
     celebrate((r.left + r.width / 2) / innerWidth, (r.top + r.height / 2) / innerHeight)
     setAmt('')
@@ -60,9 +61,21 @@ function CashCard({ s, addCash, deleteCash, setBalance }) {
     <Card tone="ink" className="cash-card">
       <Kicker>Cash in hand</Kicker>
       <p className="giant">{money(s.cash, true)}</p>
-      <p className="card-cap">ATM withdrawals go here, they aren't spending. Log cash as you spend it.</p>
+      <p className="card-cap">ATM withdrawals go here, they aren't spending. Log cash as you spend it, or an online payment the app missed.</p>
 
       <form className="cash-form" onSubmit={submit} noValidate>
+        <fieldset className="field cash-paid">
+          <legend>Paid by</legend>
+          <div className="seg" role="radiogroup">
+            {[[false, 'Cash'], [true, 'Online (missed)']].map(([k, label]) => (
+              <label key={label} className="seg-btn">
+                <input type="radio" name="paid" checked={online === k} onChange={() => setOnline(k)} className="sr" />
+                {online === k && <motion.span layoutId="paid" className="seg-fill" transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }} />}
+                <span>{label}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
         <div className="cash-inputs">
           <label className="cash-field">
             <span>Spent</span>
@@ -77,14 +90,14 @@ function CashCard({ s, addCash, deleteCash, setBalance }) {
           </label>
         </div>
         {err && <small id="cash-err" className="cash-err">{err}</small>}
-        <Brush type="submit">Log cash spend</Brush>
+        <Brush type="submit">{online ? 'Log online spend' : 'Log cash spend'}</Brush>
       </form>
 
       {s.cashSpends.length > 0 && (
-        <ul className="cash-list" aria-label="Cash spends this month">
+        <ul className="cash-list" aria-label="Spends you logged this month">
           {[...s.cashSpends].reverse().map(r => (
             <li key={r.time}>
-              <span>{r.merchant}<small>{new Date(r.time).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</small></span>
+              <span>{r.merchant}<small>{new Date(r.time).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}{r.typed && ' · online'}</small></span>
               <b>−{money(r.paise, true)}</b>
               <button type="button" className="cash-del" onClick={() => deleteCash(r.time)} aria-label={`Delete ${r.merchant} ${money(r.paise, true)}`}>
                 <X size={18} aria-hidden="true" />

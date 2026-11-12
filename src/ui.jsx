@@ -180,7 +180,7 @@ export function CountUp({ value, exact }) {
 
 /** Little label for money that's not plain spending/income. */
 export function TxTag({ r }) {
-  const t = r.self ? 'Self transfer' : r.atm ? 'To cash' : r.cash ? 'Cash' : null
+  const t = r.self ? 'Self transfer' : r.atm ? 'To cash' : r.cash ? 'Cash' : r.typed ? 'Typed in' : null
   return t && <span className="self-tag">{t}</span>
 }
 

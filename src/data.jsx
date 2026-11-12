@@ -27,9 +27,9 @@ function computeStats({ rows, settings, accounts, budget, balance, cash }) {
   const sameMonth = t => { const d = new Date(t); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() }
   const sum = (a, k = 'paise') => a.reduce((s, r) => s + r[k], 0)
   // Self transfers and ATM withdrawals (flags from native) just move your own money: left out of spending,
-  // income and the jar. Cash you spend is typed in separately (r.cash) and does count.
+  // income and the jar. Spends you type in (r.cash, or r.typed for online ones nothing reported) do count.
   const month = rows.filter(r => sameMonth(r.time) && !r.self && !r.atm)
-  const cashSpends = month.filter(r => r.cash)
+  const cashSpends = month.filter(r => r.cash || r.typed)
   const out = month.filter(r => r.debit)
   const spent = sum(out)
   const dim = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
@@ -104,8 +104,8 @@ export function LedgerProvider({ children }) {
       localStorage.setItem(NAMES, JSON.stringify(n))
       setNames(n)
     },
-    async addCash(paise, note) {
-      await Ledger.addCash({ paise, note })
+    async addCash(paise, note, online = false) {
+      await Ledger.addCash({ paise, note, online })
       await reload()
     },
     async deleteCash(time) {

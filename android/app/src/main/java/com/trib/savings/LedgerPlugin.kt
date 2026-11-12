@@ -44,6 +44,7 @@ class LedgerPlugin : Plugin() {
                     put("self", r in self)
                     put("atm", isAtm(r)) // money into your pocket, not spending
                     put("cash", r.bank == CASH) // a cash spend you typed in (deletable)
+                    put("typed", r.bank == TYPED) // an online spend you typed in (deletable)
                 })
             }
             call.resolve(JSObject().apply {
@@ -59,12 +60,13 @@ class LedgerPlugin : Plugin() {
         }.start()
     }
 
-    /** You spent cash: { paise: 4000, note: "chai" }. */
+    /** You spent: { paise: 4000, note: "chai", online: false }. online = paid by UPI/card but nothing reported it. */
     @PluginMethod
     fun addCash(call: PluginCall) {
         val paise = call.long("paise")
         if (paise == null || paise <= 0) return call.reject("a positive paise amount needed")
-        Thread { addCash(context, paise, call.getString("note", "")!!); call.resolve() }.start()
+        val online = call.getBoolean("online", false) == true
+        Thread { addCash(context, paise, call.getString("note", "")!!, online); call.resolve() }.start()
     }
 
     /** Undo a typed cash spend: { time }. */

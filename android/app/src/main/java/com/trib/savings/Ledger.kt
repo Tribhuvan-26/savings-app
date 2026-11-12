@@ -158,24 +158,31 @@ fun cashNow(ctx: Context, rows: List<Row>): Long {
 /** Money you have right now: bank/wallet balances plus cash in hand. */
 fun moneyNow(ctx: Context, rows: List<Row>): Long? = balanceNow(accounts(ctx, rows), rows)?.plus(cashNow(ctx, rows))
 
-/** You spent cash: amount and what on ("chai"). */
-fun addCash(ctx: Context, paise: Long, note: String) {
-    val line = "${System.currentTimeMillis()},$paise,${note.replace(",", " ").replace("\n", " ").trim().ifEmpty { "Cash spend" }}"
+/** Online spend typed in because nothing reported it (Navi often posts no notification): spending, out of the bank, not cash. */
+const val TYPED = "TYPED"
+
+/** You spent: amount and what on ("chai"). Cash by default; `online` for a payment no SMS/notification reported. */
+fun addCash(ctx: Context, paise: Long, note: String, online: Boolean = false) {
+    val clean = note.replace(",", " ").replace("\n", " ").trim().ifEmpty { if (online) "Online spend" else "Cash spend" }
+    val line = "${System.currentTimeMillis()},$paise,$clean${if (online) ",O" else ""}"
     synchronized(LOCK) { cashFile(ctx).appendText("$line\n") }
-    cashTxns(ctx).lastOrNull()?.let { (t, time, id) -> record(ctx, t, time, id, CASH) }
+    cashTxns(ctx).lastOrNull()?.let { (t, time, id, bank) -> record(ctx, t, time, id, bank) }
 }
 
-/** Undo a typed cash spend (by its time). */
+/** Undo a typed spend (by its time). */
 fun deleteCash(ctx: Context, time: Long) = synchronized(LOCK) {
     val f = cashFile(ctx)
     if (f.exists()) f.writeText(f.readLines().filterNot { it.startsWith("$time,") }.joinToString("") { "$it\n" })
-    writeRows(ctx, readRows(ctx).filterNot { it.bank == CASH && it.time == time })
+    writeRows(ctx, readRows(ctx).filterNot { (it.bank == CASH || it.bank == TYPED) && it.time == time })
 }
 
+private data class Typed(val t: Txn, val time: Long, val id: Int, val bank: String)
+/** cash.csv lines: time,paise,note[,O]. O = online (TYPED), else cash. */
 private fun cashTxns(ctx: Context) = synchronized(LOCK) { cashFile(ctx).takeIf { it.exists() }?.readLines() ?: emptyList() }
     .mapNotNull { l ->
         val c = l.split(",")
-        if (c.size < 3) null else Triple(Txn(true, c[1].toLong(), c[2]), c[0].toLong(), "cash$l".hashCode())
+        if (c.size < 3) null
+        else Typed(Txn(true, c[1].toLong(), c[2]), c[0].toLong(), "cash$l".hashCode(), if (c.getOrNull(3) == "O") TYPED else CASH)
     }
 
 /** Spendable this month: your monthly budget if set, but never more than spent so far + what's really in your accounts. */
@@ -230,7 +237,7 @@ private fun record(ctx: Context, t: Txn, time: Long, id: Int, bank: String): Row
         // amount within 10 min, same payee (or no name) = one payment: keep one row with the fullest name and the balance.
         // ponytail: two real same-amount payments to one payee within 10 min would merge into one
         // Typed cash spends never merge: nothing else reports them, and "₹40 chai" next to a ₹40 UPI is two spends.
-        val twin = if (bank == CASH) null else rows.firstOrNull {
+        val twin = if (bank == CASH || bank == TYPED) null else rows.firstOrNull {
             it.debit == row.debit && it.paise == row.paise && abs(it.time - row.time) < 600_000 && samePayee(it.merchant, row.merchant)
         }
         if (twin != null) {
@@ -310,7 +317,7 @@ fun scanInbox(ctx: Context) = synchronized(SCAN) { // one scan at a time, or a r
     }
     p.edit().putLong("scannedUntil", newest).apply()
     notifTxns(ctx).forEach { (t, time, id) -> record(ctx, t, time, id, "") }
-    cashTxns(ctx).forEach { (t, time, id) -> record(ctx, t, time, id, CASH) }
+    cashTxns(ctx).forEach { (t, time, id, bank) -> record(ctx, t, time, id, bank) }
 }
 
 private fun notify(ctx: Context, text: String) {
