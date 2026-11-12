@@ -66,11 +66,11 @@ export function Meme({ pool, tilt = -2, className = '' }) {
           {broken
             ? <div className="meme-blank" />
             : <img src={m.src} alt={`${m.alt} meme`} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setBroken(true)} />}
-          <span className="meme-top" aria-hidden="true">{m.top}</span>
+          {m.top && <span className="meme-top" aria-hidden="true">{m.top}</span>}
           {m.bottom && <span className="meme-bottom" aria-hidden="true">{m.bottom}</span>}
         </motion.div>
       </AnimatePresence>
-      <figcaption className="sr">{m.top}{m.bottom ? ` / ${m.bottom}` : ''}. Tap for another meme.</figcaption>
+      <figcaption className="sr">{[m.top, m.bottom].filter(Boolean).join(' / ')}. Tap for another meme.</figcaption>
     </motion.figure>
     <p className="meme-tip" aria-hidden="true">tap the meme for another one</p>
     </div>

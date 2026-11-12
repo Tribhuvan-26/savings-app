@@ -83,14 +83,17 @@ function CashCard({ s, addCash, deleteCash, setBalance }) {
           </div>
         </fieldset>
         {online && (
-          <label className="cash-field">
-            <span>From bank</span>
-            <select value={bank} onChange={e => setBank(e.target.value)}>
-              <option value="">Not sure</option>
-              {s.accounts.map(a => <option key={a.bank} value={a.bank}>{BANKS[a.bank] || a.bank}</option>)}
-              <option value={ADD}>+ Add a bank…</option>
-            </select>
-          </label>
+          <fieldset className="field cash-paid">
+            <legend>From bank</legend>
+            <div className="bank-chips" role="radiogroup">
+              {[['', 'Not sure'], ...s.accounts.map(a => [a.bank, BANKS[a.bank] || a.bank]), [ADD, '+ Add a bank']].map(([k, label]) => (
+                <label key={k || 'none'} className={`bank-chip${k === ADD ? ' bank-chip-add' : ''}`}>
+                  <input type="radio" name="from-bank" checked={bank === k} onChange={() => setBank(k)} className="sr" />
+                  <span>{label}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
         )}
         <div className="cash-inputs">
           <label className="cash-field">
