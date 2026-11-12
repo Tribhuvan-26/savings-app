@@ -25,7 +25,9 @@ export default function UpdateBanner() {
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return
     let gone = false
-    ;(async () => {
+    // Check on launch and whenever the app comes back to the front: Android often resumes the app from the
+    // background instead of restarting it, so a launch-only check could miss a release for days.
+    const check = async () => {
       try {
         const [{ version }, res] = await Promise.all([
           Ledger.appInfo(),
@@ -38,9 +40,12 @@ export default function UpdateBanner() {
         if (gone || !apk || !newer(latest, version)) return
         if (sessionStorage.getItem('update-later') === latest) return
         setRel({ latest, apk, notes: (r.body || '').split('\n').find(l => l.trim()) || '' })
-      } catch { /* offline or rate-limited: try again next launch */ }
-    })()
-    return () => { gone = true }
+      } catch { /* offline or rate-limited: try again next time */ }
+    }
+    check()
+    const onShow = () => document.visibilityState === 'visible' && check()
+    document.addEventListener('visibilitychange', onShow)
+    return () => { gone = true; document.removeEventListener('visibilitychange', onShow) }
   }, [])
 
   const later = () => { sessionStorage.setItem('update-later', rel.latest); setRel(null) }
