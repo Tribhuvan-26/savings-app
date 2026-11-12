@@ -4,7 +4,7 @@ import { AnimatePresence, MotionConfig, motion } from 'motion/react'
 import { LedgerProvider, isNative, useLedger } from './data'
 import { LogoMark } from './fun'
 import Dock from './peak/Dock'
-import UpdateBanner from './peak/Update'
+import UpdateDialogs from './peak/Update'
 import RenameSheet from './peak/RenameSheet'
 import ThemeToggle from './peak/ThemeToggle'
 import Home from './pages/Home'
@@ -87,7 +87,7 @@ function Shell() {
         </div>
       </footer>
       <Dock pages={PAGES} />
-      <UpdateBanner />
+      <UpdateDialogs />
       <RenameSheet />
     </>
   )

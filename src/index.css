@@ -857,22 +857,16 @@ input::placeholder, textarea::placeholder { color: var(--grey); opacity: 1; }
 .coin-flat { position: absolute; inset: 0; margin: auto; border-radius: 50%; }
 .txs-more { padding: 16px 0 6px; text-align: center; font: 600 13px/1 var(--f-mono); color: var(--grey); }
 
-/* Update banner (src/peak/Update.jsx) */
-.update {
-  position: fixed; z-index: 90; left: 12px; right: 12px; top: calc(10px + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)));
-  display: flex; align-items: center; gap: 10px; max-width: 520px; margin: 0 auto; padding: 10px 8px 10px 16px;
-  border: var(--line); border-radius: 20px; background: var(--ink); color: var(--cream); box-shadow: 6px 6px 0 var(--red);
+/* Version dialogs (src/peak/Update.jsx): reuse the rename sheet's look */
+.ver-badge {
+  justify-self: start; display: inline-flex; align-items: center; gap: 6px; margin: 0; padding: 6px 12px; border-radius: 99px;
+  background: var(--red); color: #fff; font: 700 13px/1 var(--f-mono); letter-spacing: 0.06em;
 }
-.update-text { flex: 1; min-width: 0; display: grid; gap: 2px; }
-.update-text b { font: 400 20px/1.1 var(--f-display); text-transform: uppercase; }
-.update-text span { font: 500 13px/1.3 var(--f-body); opacity: 0.85; }
-.update-go:disabled { opacity: 0.6; }
-.update-go {
-  display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border: 0; border-radius: 14px;
-  background: var(--red); color: var(--white); font: 700 14px/1 var(--f-body); cursor: pointer;
-}
-.update-x { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; background: transparent; color: var(--cream); cursor: pointer; }
-.update-go:focus-visible, .update-x:focus-visible { outline: 3px solid var(--cream); outline-offset: 2px; }
+.ver-notes { display: grid; gap: 8px; margin: 0; padding: 0 0 0 20px; font: 500 16px/1.45 var(--f-body); }
+.ver-notes li::marker { color: var(--red); }
+.ver-status { margin: 0; padding: 12px 14px; border-radius: 14px; background: var(--paper); font: 600 14px/1.4 var(--f-body); }
+.sheet-save:disabled { opacity: 0.6; }
+.ver > .sheet-body > .sheet-save { width: 100%; }
 
 /* Add a bank whose SMS have no balance (Budget → accounts card) */
 .acct-add { display: grid; gap: 8px; padding-top: 14px; border-top: 2px solid var(--ink); }

@@ -10,8 +10,8 @@ const KEY = 'savings.theme'
 const PAPER = { light: [0xF4 / 255, 0xF1 / 255, 0xEA / 255], dark: [0x0F / 255, 0x0E / 255, 0x11 / 255] }
 // Pigment pooled at the frontier: denser ink when going dark, brighter "bleach" when going light.
 const RIM = { dark: [0.0, 0.0, 0.01], light: [1.0, 0.996, 0.985] }
-const DURATION = 1.1 // s of spread
-const FADE = 280     // ms for the ink to clear once the page underneath has flipped
+const DURATION = 2.2 // s of spread: slow enough to watch the ink crawl
+const FADE = 520     // ms for the ink to clear once the page underneath has flipped
 const SPREAD = { growth: 0.7, cleanupFrom: 0.45, cleanupReach: 0.4 }
 
 export const getTheme = () => (document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light')
