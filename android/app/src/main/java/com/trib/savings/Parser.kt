@@ -5,7 +5,7 @@ import java.math.BigDecimal
 // Pure Kotlin, no Android imports, so the unit test runs it on the JVM.
 
 /** Bump whenever parsing changes: the app rebuilds its ledger from the inbox. */
-const val PARSER_VERSION = 8
+const val PARSER_VERSION = 9
 const val UNKNOWN = "Unknown"
 
 /** `balance`: what the account holds after this txn, when the SMS says ("Avl Bal Rs 575.29"). */
@@ -17,10 +17,13 @@ private val AMOUNT = Regex("""(?:rs\.?|inr|₹)\s*([\d,]+(?:\.\d{1,2})?)""", I)
 private val AMOUNT_BARE = Regex("""\b(?:debited|credited)\s+(?:by|for|with)\s+(?:rs\.?|inr|₹)?\s*([\d,]+(?:\.\d{1,2})?)""", I)
 // Setting up or changing an autopay mandate moves no money; the later "debited ... mandate" SMS is the payment.
 private val MANDATE_SETUP = Regex("""\bmandate\b.{0,80}?\b(?:created|registered|revoked|paused|modified|cancelled|updated)\b""", I)
-private val DEBIT =Regex("""\b(debited|spent|paid|sent|withdrawn|purchase|done for)\b""", I)
+// "Dr"/"Cr" right before an amount: Union Bank's "A/c*1234 Dr Rs5000.00 ... Fv.RAVI, Bal Rs809.70"
+private val DEBIT = Regex("""\b(debited|spent|paid|sent|withdrawn|purchase|done for|dr(?=\.?\s*(?:rs|inr|₹)))\b""", I)
+// "Fv.RAVI" = in favour of RAVI: the payee (Union Bank)
+private val FAVOUR = Regex("""\bfv\.\s*([A-Za-z][A-Za-z .&'-]{0,40}?)(?=\s*[,;]|\.\s|\s+bal\b|\s*$)""", I)
 // Payment gateways (PayU): "Transaction No. 1 for Rs. 41.00 done for L and T METRO RAIL HYDERABA... has succeeded"
 private val DONE_FOR = Regex("""\bdone for\s+([A-Za-z0-9][A-Za-z0-9 .&'-]{1,40}?)(?:\.{2,}|\s+has\b)""", I)
-private val CREDIT = Regex("""\b(credited|received|deposited|refunded)\b""", I)
+private val CREDIT = Regex("""\b(credited|received|deposited|refunded|cr(?=\.?\s*(?:rs|inr|₹)))\b""", I)
 private val IGNORE = Regex("""\b(otp|will be debited|will be refunded|request|requested|reminder|failed|declined|consent|is due|due on|free cash|rewards?|your bill)\b""", I)
 // IDBI-style: "...; Bal Rs 575.29 SK FOODIES credited. UPI:..." (the payee sits right before "credited")
 private val PAYEE_CREDITED = Regex("""(?:rs\.?|inr|₹)\s*[\d,]+(?:\.\d{1,2})?\s+([A-Za-z][A-Za-z0-9 .&'-]{1,40}?)\s+credited\b""", I)
@@ -49,7 +52,8 @@ fun parseSms(sender: String, body: String): Txn? {
     val paise = toPaise(amount.groupValues[1])
     if (paise <= 0) return null
     // PAYEE_CREDITED first: IDBI's "To Block UPI send SMS..." footer would otherwise match PAID_TO as "Block".
-    val merchant = (if (debit) PAYEE_CREDITED.find(body) ?: DONE_FOR.find(body) ?: PAID_TO.find(body) else GOT_FROM.find(body))
+    val merchant = (if (debit) PAYEE_CREDITED.find(body) ?: DONE_FOR.find(body) ?: FAVOUR.find(body) ?: PAID_TO.find(body)
+        else FAVOUR.find(body) ?: GOT_FROM.find(body))
         ?.groupValues?.get(1)?.trim()
         ?: if (debit && ATM.containsMatchIn(body)) "ATM cash" else UNKNOWN
     val balance = BALANCE.find(body)?.let { toPaise(it.groupValues[1]) }

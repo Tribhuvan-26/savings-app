@@ -68,7 +68,18 @@ class ParserTest {
             p("Dear SBI UPI User, ur A/cX1234 credited by Rs500 on 12Nov26 by (Ref no 123456789012)", "AD-SBIUPI-S"))
     }
 
-    @Test fun payuGateway() =assertEquals(
+    @Test fun unionBankDr() {
+        val tail = " Not U?Call 18001234/SMS BLOCK 1234 to 9000000000"
+        assertEquals(Txn(true, 500000, "ravi", 80970),
+            p("Union Bank of India A/c*1234 Dr Rs5000.00 on 09-11-26 15:44 by MB 600000000001 Fv.ravi, Bal Rs809.70$tail", "JX-UNIONB-S"))
+        assertEquals(Txn(true, 10000, "SHARM", 259370),
+            p("Union Bank of India A/c*1234 Dr Rs100.00 on 12-11-26 17:19 by MB 000000000002 Fv.SHARM, Bal Rs2593.70$tail", "JX-UNIONB-S"))
+        assertEquals(false, p("Union Bank of India A/c*1234 Cr Rs250.00 on 12-11-26 18:00 by UPI 000000000003, Bal Rs2843.70$tail", "JX-UNIONB-S")?.debit)
+        // "Dr." as a title in a name isn't a debit on its own
+        assertNull(p("Appointment with Dr. Rao confirmed for 12-11-26", "AD-CLINIC-S"))
+    }
+
+    @Test fun payuGateway() = assertEquals(
         Txn(true, 4100, "L and T METRO RAIL HYDERABA"),
         p("Transaction No. 31761720214 for Rs. 41.00 done for L and T METRO RAIL HYDERABA... has succeeded Team PayU", "AX-PAYUIB-S"))
 
