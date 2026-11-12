@@ -31,21 +31,30 @@ function MyMemes() {
   const [top, setTop] = useState('')
   const [bottom, setBottom] = useState('')
   const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [done, setDone] = useState('')
   useEffect(() => () => preview && URL.revokeObjectURL(preview), [preview])
   const pick = e => {
     const f = e.target.files?.[0]
     e.target.value = '' // picking the same picture again still fires onChange
     if (!f) return
     setErr('')
+    setDone('')
     setFile(f)
     setPreview(URL.createObjectURL(f))
   }
   const submit = async e => {
     e.preventDefault()
+    if (busy) return
     if (!file) return setErr('Pick a picture first')
+    setErr('')
+    setBusy(true)
     try { await addMyMeme(file, top, bottom) } catch (x) {
+      setBusy(false)
       return setErr(x?.name === 'QuotaExceededError' ? 'No room left for memes: delete one of yours first' : `Couldn't add it: ${x.message}`)
     }
+    setBusy(false)
+    setDone('Added! It shows up with the other memes now.')
     success()
     setList(myMemes())
     setFile(null)
@@ -68,13 +77,16 @@ function MyMemes() {
         <Field id="meme-top" label="Top text (optional)" value={top} onChange={e => setTop(e.target.value)} maxLength={60} />
         <Field id="meme-bottom" label="Bottom text (optional)" value={bottom} onChange={e => setBottom(e.target.value)} maxLength={60} />
         {err && <p className="err" id="meme-err"><CircleAlert size={15} aria-hidden="true" /> {err}</p>}
-        <Brush type="submit">Add meme</Brush>
+        <p className="meme-done" role="status">{done}</p>
+        <Brush type="submit">{busy ? 'Adding…' : 'Add meme'}</Brush>
       </form>
       {list.length > 0 && (
         <ul className="my-meme-list" aria-label="Your memes">
           {list.map(m => (
             <li key={m.id}>
               <img src={m.src} alt={[m.top, m.bottom].filter(Boolean).join(' / ') || 'Your meme'} />
+              {m.top && <span className="my-meme-cap my-meme-top" aria-hidden="true">{m.top}</span>}
+              {m.bottom && <span className="my-meme-cap my-meme-bottom" aria-hidden="true">{m.bottom}</span>}
               <button type="button" className="my-meme-del" onClick={() => remove(m.id)} aria-label="Delete this meme">
                 <X size={18} aria-hidden="true" />
               </button>

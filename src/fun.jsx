@@ -52,10 +52,19 @@ const pick = (n, not) => { if (n < 2) return 0; let i; do { i = Math.floor(Math.
  * If an image can't load (offline), the captions still show on an ink card.
  */
 export function Meme({ pool, tilt = -2, className = '' }) {
-  const [i, setI] = useState(() => pick(pool.length))
+  // The next meme is picked ahead and downloaded in the background, so a tap shows it instantly.
+  const [[i, nxt], setPair] = useState(() => { const a = pick(pool.length); return [a, pick(pool.length, a)] })
   const [broken, setBroken] = useState(false)
+  const [loaded, setLoaded] = useState(false)
   const m = pool[i % pool.length]
-  const next = () => { thud(); setBroken(false); setI(c => pick(pool.length, c)) }
+  const upcoming = pool[nxt % pool.length]?.src
+  useEffect(() => {
+    if (!upcoming) return
+    const im = new Image()
+    im.referrerPolicy = 'no-referrer'
+    im.src = upcoming
+  }, [upcoming])
+  const next = () => { thud(); setBroken(false); setLoaded(false); setPair(([, b]) => [b, pick(pool.length, b)]) }
   return (
     <div className={`meme-wrap ${className}`}>
     <motion.figure className="meme" style={{ rotate: tilt }}
@@ -64,12 +73,12 @@ export function Meme({ pool, tilt = -2, className = '' }) {
       <AnimatePresence mode="wait" initial={false}>
         <motion.div key={i} className="meme-frame" initial={{ rotateY: -90, opacity: 0 }} animate={{ rotateY: 0, opacity: 1 }}
           exit={{ rotateY: 90, opacity: 0 }} transition={{ duration: 0.22 }}>
-          {broken
-            ? <div className="meme-blank" />
-            : <img src={m.src} alt={`${m.alt} meme`} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setBroken(true)} />}
+          {(broken || !loaded) && <div className={`meme-blank${broken ? '' : ' meme-loading'}`} />}
+          {!broken && <img src={m.src} alt={`${m.alt} meme`} decoding="async" referrerPolicy="no-referrer"
+            hidden={!loaded} onLoad={() => setLoaded(true)} onError={() => setBroken(true)} />}
           {m.top && <span className="meme-top" aria-hidden="true">{m.top}</span>}
           {m.bottom && <span className="meme-bottom" aria-hidden="true">{m.bottom}</span>}
-          {!broken && m.labels?.map(([t, x, y]) => <span key={t} className="meme-label" style={{ left: `${x}%`, top: `${y}%` }} aria-hidden="true">{t}</span>)}
+          {loaded && !broken && m.labels?.map(([t, x, y]) => <span key={t} className="meme-label" style={{ left: `${x}%`, top: `${y}%` }} aria-hidden="true">{t}</span>)}
         </motion.div>
       </AnimatePresence>
       <figcaption className="sr">{[m.top, m.bottom, ...(m.labels || []).map(l => l[0])].filter(Boolean).join(' / ')}. Tap for another meme.</figcaption>
