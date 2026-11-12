@@ -100,6 +100,27 @@ class LedgerPlugin : Plugin() {
         call.resolve()
     }
 
+    /**
+     * Download and install an update in-app: { url }. First time, Android needs "Install unknown apps" allowed
+     * for Savings: we open that screen and reject with code "ALLOW_INSTALLS"; tap Update again after allowing.
+     */
+    @PluginMethod
+    fun installUpdate(call: PluginCall) {
+        val url = call.getString("url") ?: return call.reject("url needed")
+        if (!Updater.allowed(url)) return call.reject("not a Savings release link")
+        if (!context.packageManager.canRequestPackageInstalls()) {
+            context.startActivity(
+                Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, android.net.Uri.parse("package:${context.packageName}"))
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+            return call.reject("Allow \"Install unknown apps\" for Savings, then tap Update again", "ALLOW_INSTALLS")
+        }
+        Thread {
+            try { Updater.downloadAndInstall(context, url); call.resolve() }
+            catch (e: Exception) { call.reject(e.message ?: "update failed") }
+        }.start()
+    }
+
     /** Android only lets the user grant notification access from its own settings screen. */
     @PluginMethod
     fun openNotifAccess(call: PluginCall) {

@@ -16,12 +16,13 @@ export const newer = (a, b) => {
 }
 
 /**
- * On launch, asks GitHub for the latest release; if it's newer than this install, offers it. Tapping Update opens
- * the APK in the browser, which downloads it; Android then installs it over this copy (same signing key), keeping
- * all data. Sends nothing about you: it's one anonymous public API read. Fails silently offline.
+ * On launch and on return to the app, asks GitHub for the latest release; if it's newer than this install, offers it.
+ * Update downloads it in-app and hands it to Android's installer (data kept: same signing key). Sends nothing about
+ * you: it's one anonymous public API read. Fails silently offline.
  */
 export default function UpdateBanner() {
   const [rel, setRel] = useState(null)
+  const [status, setStatus] = useState('') // '', 'Downloading…', or a hint after a problem
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return
     let gone = false
@@ -49,7 +50,20 @@ export default function UpdateBanner() {
   }, [])
 
   const later = () => { sessionStorage.setItem('update-later', rel.latest); setRel(null) }
-  const update = () => { tick(); Ledger.openUrl({ url: rel.apk }) }
+  // Installs in-app (Updater.kt), so Android doesn't re-lock restricted settings the way browser downloads do.
+  // First time: Android asks to allow "Install unknown apps" for Savings. Anything else: fall back to the browser.
+  const update = async () => {
+    tick()
+    setStatus('Downloading…')
+    try {
+      await Ledger.installUpdate({ url: rel.apk })
+      setStatus('Confirm the update in the Android prompt')
+    } catch (e) {
+      if (e.code === 'ALLOW_INSTALLS') return setStatus('Allow "Install unknown apps" for Savings, come back, tap Update again')
+      setStatus('')
+      Ledger.openUrl({ url: rel.apk })
+    }
+  }
 
   return (
     <AnimatePresence>
@@ -59,9 +73,9 @@ export default function UpdateBanner() {
           transition={{ type: 'spring', stiffness: 420, damping: 32 }}>
           <div className="update-text">
             <b>Version {rel.latest} is out</b>
-            {rel.notes && <span>{rel.notes.replace(/^[#*\-\s]+/, '')}</span>}
+            {status ? <span>{status}</span> : rel.notes && <span>{rel.notes.replace(/^[#*\-\s]+/, '')}</span>}
           </div>
-          <button type="button" className="update-go" onClick={update}><Download size={18} aria-hidden="true" /> Update</button>
+          <button type="button" className="update-go" onClick={update} disabled={status === 'Downloading…'}><Download size={18} aria-hidden="true" /> Update</button>
           <button type="button" className="update-x" onClick={later} aria-label="Remind me later"><X size={18} aria-hidden="true" /></button>
         </motion.aside>
       )}
