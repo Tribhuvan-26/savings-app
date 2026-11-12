@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { animate, motion, useReducedMotion } from 'motion/react'
 import { ArrowUpRight } from 'lucide-react'
 import { money } from './data'
+import { openRename } from './peak/RenameSheet'
 
 const snap = [0.2, 0, 0, 1]
 export const list = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } }
@@ -189,7 +190,7 @@ export function TxRow({ r, right, sub }) {
     <motion.li className="tx" variants={item}>
       <span className={`av${r.debit ? '' : ' av-in'}`} aria-hidden="true">{r.merchant[0]}</span>
       <span className="tx-who">
-        <b>{r.merchant}<TxTag r={r} /></b>
+        <b><button type="button" className="name-btn" onClick={() => openRename(r)} aria-label={`Rename ${r.merchant}`}>{r.merchant}</button><TxTag r={r} /></b>
         <small>{sub ?? <>{time}{r.saved > 0 && <> · <span className="red">+{money(r.saved, true)} saved</span></>}</>}</small>
       </span>
       {right ?? (

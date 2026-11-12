@@ -3,6 +3,7 @@ import { motion } from 'motion/react'
 import { Search } from 'lucide-react'
 import { money, useLedger } from '../data'
 import { Meme } from '../fun'
+import { openRename } from '../peak/RenameSheet'
 import { budgetMood, pool } from '../memes'
 import { Art, Empty, Kicker, Note, Reveal, Stack, TxTag, item } from '../ui'
 
@@ -77,7 +78,7 @@ export default function Activity() {
                 </tr>
                 {items.map(r => (
                   <motion.tr key={`${r.time}${r.merchant}`} variants={item} initial="hidden" animate="show">
-                    <td><span className="cell-who"><span className={`av${r.debit ? '' : ' av-in'}`} aria-hidden="true">{r.merchant[0]}</span><b>{r.merchant}<TxTag r={r} /></b></span></td>
+                    <td><span className="cell-who"><span className={`av${r.debit ? '' : ' av-in'}`} aria-hidden="true">{r.merchant[0]}</span><b><button type="button" className="name-btn" onClick={() => openRename(r)} aria-label={`Rename ${r.merchant}`}>{r.merchant}</button><TxTag r={r} /></b></span></td>
                     <td className="muted">{new Date(r.time).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })}</td>
                     <td className="red">{r.saved > 0 ? `+${money(r.saved, true)}` : ''}</td>
                     <td className={`num-col tx-amt${r.debit ? '' : ' red'}`}>

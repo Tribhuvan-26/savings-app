@@ -53,11 +53,23 @@ function computeStats({ rows, settings, accounts, budget, balance, cash }) {
   }
 }
 
+// Names you gave transactions (Unknown, or cut short by the bank). Kept on the phone in localStorage, which
+// survives app updates and ledger rebuilds; keyed by time + amount, stable across rebuilds.
+// byKey: one transaction. byName: every transaction the bank labelled with that name ("KATEP").
+const NAMES = 'savings.names'
+const loadNames = () => { try { return { byKey: {}, byName: {}, ...JSON.parse(localStorage.getItem(NAMES)) } } catch { return { byKey: {}, byName: {} } } }
+export const txKey = r => `${r.time}:${r.paise}`
+const applyNames = (rows, n) => rows.map(r => {
+  const name = n.byKey[txKey(r)] || n.byName[r.merchant]
+  return name ? { ...r, merchant: name, orig: r.merchant } : r
+})
+
 const Ctx = createContext(null)
 export const useLedger = () => useContext(Ctx)
 
 export function LedgerProvider({ children }) {
   const [data, setData] = useState(null)
+  const [names, setNames] = useState(loadNames)
   const reload = useCallback(() => fetchAll().then(setData), [])
 
   useEffect(() => {
@@ -73,9 +85,25 @@ export function LedgerProvider({ children }) {
     }
   }, [reload])
 
-  const value = useMemo(() => ({
-    ...data,
-    s: data && computeStats(data),
+  const value = useMemo(() => {
+    const named = data && { ...data, rows: applyNames(data.rows, names) }
+    return {
+    ...named,
+    s: named && computeStats(named),
+    /** Name a transaction; `everywhere` also names every other one the bank gave the same label. Empty name = undo. */
+    rename(r, name, everywhere) {
+      const orig = r.orig || r.merchant
+      const n = { byKey: { ...names.byKey }, byName: { ...names.byName } }
+      const clean = name.trim().replace(/\s+/g, ' ')
+      delete n.byKey[txKey(r)]
+      if (everywhere && orig !== 'Unknown') delete n.byName[orig]
+      if (clean && clean !== orig) {
+        if (everywhere && orig !== 'Unknown') n.byName[orig] = clean
+        else n.byKey[txKey(r)] = clean
+      }
+      localStorage.setItem(NAMES, JSON.stringify(n))
+      setNames(n)
+    },
     async addCash(paise, note) {
       await Ledger.addCash({ paise, note })
       await reload()
@@ -93,7 +121,8 @@ export function LedgerProvider({ children }) {
       await Ledger.save(settings)
       await reload()
     },
-  }), [data, reload])
+  }
+  }, [data, names, reload])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

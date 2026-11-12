@@ -5,6 +5,8 @@ import { LedgerProvider, isNative, useLedger } from './data'
 import { LogoMark } from './fun'
 import Dock from './peak/Dock'
 import UpdateBanner from './peak/Update'
+import RenameSheet from './peak/RenameSheet'
+import ThemeToggle from './peak/ThemeToggle'
 import Home from './pages/Home'
 import Activity from './pages/Activity'
 import Jar from './pages/Jar'
@@ -38,9 +40,10 @@ function Shell() {
             ))}
           </nav>
           <div className="head-cta">
+            <ThemeToggle />
             <Link to="/settings" className={`live-pill ${isNative && smsAccess ? 'is-live' : ''}`}>
               <span className="status-dot" aria-hidden="true" />
-              {isNative && smsAccess ? 'Auto-sync on' : 'Not connected'}
+              <span className="live-text">{isNative && smsAccess ? 'Auto-sync on' : 'Not connected'}</span>
             </Link>
           </div>
         </div>
@@ -85,6 +88,7 @@ function Shell() {
       </footer>
       <Dock pages={PAGES} />
       <UpdateBanner />
+      <RenameSheet />
     </>
   )
 }
