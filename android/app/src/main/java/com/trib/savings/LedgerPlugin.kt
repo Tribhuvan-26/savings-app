@@ -84,6 +84,22 @@ class LedgerPlugin : Plugin() {
         call.resolve()
     }
 
+    /** Installed version, for the update check: { version: "1.1.0" }. */
+    @PluginMethod
+    fun appInfo(call: PluginCall) {
+        val v = context.packageManager.getPackageInfo(context.packageName, 0).versionName
+        call.resolve(JSObject().apply { put("version", v) })
+    }
+
+    /** Open a link (the update APK) in the phone's browser, which downloads it and offers to install. */
+    @PluginMethod
+    fun openUrl(call: PluginCall) {
+        val url = call.getString("url")?.takeIf { it.startsWith("https://github.com/") }
+            ?: return call.reject("only GitHub release links")
+        context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        call.resolve()
+    }
+
     /** Android only lets the user grant notification access from its own settings screen. */
     @PluginMethod
     fun openNotifAccess(call: PluginCall) {
