@@ -804,8 +804,11 @@ input::placeholder, textarea::placeholder { color: var(--grey); opacity: 1; }
 .cash-inputs { display: grid; grid-template-columns: minmax(110px, 0.8fr) 1.4fr; gap: 12px; }
 .cash-field { display: grid; gap: 6px; }
 .cash-field > span:first-child { font: 700 12px/1 var(--f-mono); letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.75; }
-.cash-field input, .cash-amt { min-height: 52px; border: 2px solid var(--cream); border-radius: 14px; background: transparent; color: var(--cream); font: 500 17px/1 var(--f-mono); }
-.cash-field input { padding: 0 14px; width: 100%; box-sizing: border-box; }
+.cash-field input, .cash-field select, .cash-amt { min-height: 52px; border: 2px solid var(--cream); border-radius: 14px; background: transparent; color: var(--cream); font: 500 17px/1 var(--f-mono); }
+.cash-field input, .cash-field select { padding: 0 14px; width: 100%; box-sizing: border-box; }
+.cash-field select option { color: #0D0D0D; background: #FFF; }
+.cash-field select:focus-visible { outline: 3px solid var(--red); outline-offset: 2px; }
+.cash-hint { font: 500 12px/1.3 var(--f-mono); opacity: 0.7; }
 .cash-field input::placeholder { color: rgba(243, 236, 214, 0.5); }
 .cash-amt { display: flex; align-items: center; padding-left: 14px; }
 .cash-amt i { font: 400 22px/1 var(--f-display); font-style: normal; color: var(--red); }
@@ -924,3 +927,8 @@ input::placeholder, textarea::placeholder { color: var(--grey); opacity: 1; }
   .live-pill { width: 48px; min-height: 48px; padding: 0; justify-content: center; }
   .live-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 }
+
+/* Add-a-bank form inside the dark cash card, and Remove on hand-added banks */
+.cash-card .acct-add { border-top-color: rgba(243, 236, 214, 0.3); }
+.cash-card .acct-add-hint { color: inherit; opacity: 0.7; }
+.acct-remove { grid-column: 1 / -1; color: var(--red-ink); }

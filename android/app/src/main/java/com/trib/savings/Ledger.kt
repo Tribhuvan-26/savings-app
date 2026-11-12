@@ -112,9 +112,16 @@ fun readRows(ctx: Context): List<Row> = synchronized(LOCK) {
 fun setBalance(ctx: Context, bank: String, paise: Long) =
     prefs(ctx).edit().putString("bal:$bank", "$paise@${System.currentTimeMillis()}").apply()
 
+/** A bank you added by hand: no SMS ever stated its balance, so removing your typed one removes the bank. */
+fun isAdded(ctx: Context, bank: String, rows: List<Row>) =
+    prefs(ctx).contains("bal:$bank") && rows.none { it.bank == bank && it.bal != null }
+
+fun removeAccount(ctx: Context, bank: String) = prefs(ctx).edit().remove("bal:$bank").apply()
+
 /**
- * Latest known balance per bank/wallet: from SMS ("Avl Bal Rs 575.29") or one you typed in, whichever is newer.
- * Accounts silent for 60+ days are skipped as likely unused.
+ * Latest known balance per bank/wallet: from SMS ("Avl Bal Rs 575.29") or one you typed in, whichever is newer,
+ * minus online spends you typed in against that bank since. Banks only seen in SMS go after 60 silent days (likely
+ * unused); a bank you added by hand stays, even with no transactions (a savings account you never pay from).
  */
 fun accounts(ctx: Context, rows: List<Row>): Map<String, Row> {
     val cutoff = System.currentTimeMillis() - 60 * DAY
@@ -122,19 +129,24 @@ fun accounts(ctx: Context, rows: List<Row>): Map<String, Row> {
         (v as? String)?.split("@")?.takeIf { it.size == 2 }
             ?.let { Row(it[1].toLong(), false, 0, "", 0, bank = k.removePrefix("bal:"), bal = it[0].toLong()) }
     }
-    return (rows.filter { it.bal != null && it.bank.isNotEmpty() } + typed).filter { it.time > cutoff }
-        .groupBy { it.bank }.mapValues { (_, g) -> g.maxBy { it.time } }
+    return (rows.filter { it.bal != null && it.bank.isNotEmpty() && it.time > cutoff } + typed)
+        .groupBy { it.bank }.mapValues { (bank, g) ->
+            val r = g.maxBy { it.time }
+            r.copy(bal = r.bal!! - rows.filter { typedFrom(it) == bank && it.time > r.time }.sumOf { it.paise })
+        }
 }
 
 /**
  * Money you have right now: the accounts' latest balances, adjusted by payments logged after all of them that
  * stated no balance (UPI notifications, PayU...). Those happened after every balance we know, so none counts twice.
+ * Typed spends tied to a bank are already taken off that bank in accounts().
  */
 fun balanceNow(acc: Map<String, Row>, rows: List<Row>): Long? {
     if (acc.isEmpty()) return null
     val since = acc.values.maxOf { it.time }
     return acc.values.sumOf { it.bal!! } +
-        rows.filter { it.bal == null && it.bank != CASH && it.time > since }.sumOf { if (it.debit) -it.paise else it.paise }
+        rows.filter { it.bal == null && it.bank != CASH && typedFrom(it) == null && it.time > since }
+            .sumOf { if (it.debit) -it.paise else it.paise }
 }
 
 /* ── Cash ──────────────────────────────────────────────────────────────────────────────────────────────
@@ -159,30 +171,37 @@ fun cashNow(ctx: Context, rows: List<Row>): Long {
 fun moneyNow(ctx: Context, rows: List<Row>): Long? = balanceNow(accounts(ctx, rows), rows)?.plus(cashNow(ctx, rows))
 
 /** Online spend typed in because nothing reported it (Navi often posts no notification): spending, out of the bank, not cash. */
+/** Row bank: "TYPED" (no bank picked) or "TYPED:SBI" (paid from SBI: comes off SBI's balance). */
 const val TYPED = "TYPED"
+fun isTyped(r: Row) = r.bank == TYPED || r.bank.startsWith("$TYPED:")
+/** The bank a typed online spend was paid from, or null. */
+fun typedFrom(r: Row) = r.bank.takeIf { it.startsWith("$TYPED:") }?.removePrefix("$TYPED:")
 
-/** You spent: amount and what on ("chai"). Cash by default; `online` for a payment no SMS/notification reported. */
-fun addCash(ctx: Context, paise: Long, note: String, online: Boolean = false) {
+/** You spent: amount and what on ("chai"). Cash by default; `online` for a payment no SMS/notification reported, `bank` it came from. */
+fun addCash(ctx: Context, paise: Long, note: String, online: Boolean = false, bank: String = "") {
     val clean = note.replace(",", " ").replace("\n", " ").trim().ifEmpty { if (online) "Online spend" else "Cash spend" }
-    val line = "${System.currentTimeMillis()},$paise,$clean${if (online) ",O" else ""}"
+    val from = bank.replace(",", " ").replace("\n", " ").trim()
+    val tag = if (!online) "" else if (from.isEmpty()) ",O" else ",O:$from"
+    val line = "${System.currentTimeMillis()},$paise,$clean$tag"
     synchronized(LOCK) { cashFile(ctx).appendText("$line\n") }
-    cashTxns(ctx).lastOrNull()?.let { (t, time, id, bank) -> record(ctx, t, time, id, bank) }
+    cashTxns(ctx).lastOrNull()?.let { (t, time, id, b) -> record(ctx, t, time, id, b) }
 }
 
 /** Undo a typed spend (by its time). */
 fun deleteCash(ctx: Context, time: Long) = synchronized(LOCK) {
     val f = cashFile(ctx)
     if (f.exists()) f.writeText(f.readLines().filterNot { it.startsWith("$time,") }.joinToString("") { "$it\n" })
-    writeRows(ctx, readRows(ctx).filterNot { (it.bank == CASH || it.bank == TYPED) && it.time == time })
+    writeRows(ctx, readRows(ctx).filterNot { (it.bank == CASH || isTyped(it)) && it.time == time })
 }
 
 private data class Typed(val t: Txn, val time: Long, val id: Int, val bank: String)
-/** cash.csv lines: time,paise,note[,O]. O = online (TYPED), else cash. */
+/** cash.csv lines: time,paise,note[,O[:BANK]]. O = online (TYPED / TYPED:BANK), else cash. */
 private fun cashTxns(ctx: Context) = synchronized(LOCK) { cashFile(ctx).takeIf { it.exists() }?.readLines() ?: emptyList() }
     .mapNotNull { l ->
         val c = l.split(",")
-        if (c.size < 3) null
-        else Typed(Txn(true, c[1].toLong(), c[2]), c[0].toLong(), "cash$l".hashCode(), if (c.getOrNull(3) == "O") TYPED else CASH)
+        val o = c.getOrNull(3)
+        val bank = when { o == "O" -> TYPED; o?.startsWith("O:") == true -> "$TYPED:${o.removePrefix("O:")}"; else -> CASH }
+        if (c.size < 3) null else Typed(Txn(true, c[1].toLong(), c[2]), c[0].toLong(), "cash$l".hashCode(), bank)
     }
 
 /** Spendable this month: your monthly budget if set, but never more than spent so far + what's really in your accounts. */
@@ -237,7 +256,7 @@ private fun record(ctx: Context, t: Txn, time: Long, id: Int, bank: String): Row
         // amount within 10 min, same payee (or no name) = one payment: keep one row with the fullest name and the balance.
         // ponytail: two real same-amount payments to one payee within 10 min would merge into one
         // Typed cash spends never merge: nothing else reports them, and "₹40 chai" next to a ₹40 UPI is two spends.
-        val twin = if (bank == CASH || bank == TYPED) null else rows.firstOrNull {
+        val twin = if (bank == CASH || bank == TYPED || bank.startsWith("$TYPED:")) null else rows.firstOrNull {
             it.debit == row.debit && it.paise == row.paise && abs(it.time - row.time) < 600_000 && samePayee(it.merchant, row.merchant)
         }
         if (twin != null) {

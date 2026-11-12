@@ -39,19 +39,25 @@ const BANKS = { IDBIBK: 'IDBI Bank', JIOPBS: 'Jio Payments Bank', FAMPAY: 'FamPa
 /** Typed balance: "303.29" -> 30329 paise, or null if it isn't a plain amount. */
 const toPaise = v => (/^\d+(\.\d{1,2})?$/.test(v.trim()) ? Math.round(parseFloat(v) * 100) : null)
 
+const ADD = '+add' // "From bank" option that opens the add-a-bank form
+
 /** ATM cash lands here; you log what you spend from it. Typed spends count as spending, ATM withdrawals don't. */
 function CashCard({ s, addCash, deleteCash, setBalance }) {
   const [amt, setAmt] = useState('')
   const [note, setNote] = useState('')
   const [online, setOnline] = useState(false)
+  const [bank, setBank] = useState('')
   const [err, setErr] = useState('')
   const submit = async e => {
     e.preventDefault()
     const p = toPaise(amt)
     if (!p) return setErr('Amount like 40 or 12.50')
+    if (online && bank === ADD) return setErr('Add the bank below first, or pick one')
     setErr('')
     const form = e.currentTarget
-    try { await addCash(p, note, online) } catch (x) { return setErr(`Not saved: ${x.message}`) }
+    // A bank that has since dropped off the list is sent as "not sure".
+    const from = online && s.accounts.some(a => a.bank === bank) ? bank : ''
+    try { await addCash(p, note, online, from) } catch (x) { return setErr(`Not saved: ${x.message}`) }
     const r = form.getBoundingClientRect()
     celebrate((r.left + r.width / 2) / innerWidth, (r.top + r.height / 2) / innerHeight)
     setAmt('')
@@ -76,6 +82,16 @@ function CashCard({ s, addCash, deleteCash, setBalance }) {
             ))}
           </div>
         </fieldset>
+        {online && (
+          <label className="cash-field">
+            <span>From bank</span>
+            <select value={bank} onChange={e => setBank(e.target.value)}>
+              <option value="">Not sure</option>
+              {s.accounts.map(a => <option key={a.bank} value={a.bank}>{BANKS[a.bank] || a.bank}</option>)}
+              <option value={ADD}>+ Add a bank…</option>
+            </select>
+          </label>
+        )}
         <div className="cash-inputs">
           <label className="cash-field">
             <span>Spent</span>
@@ -92,12 +108,13 @@ function CashCard({ s, addCash, deleteCash, setBalance }) {
         {err && <small id="cash-err" className="cash-err">{err}</small>}
         <Brush type="submit">{online ? 'Log online spend' : 'Log cash spend'}</Brush>
       </form>
+      {online && bank === ADD && <AddAccount setBalance={setBalance} onAdded={setBank} />}
 
       {s.cashSpends.length > 0 && (
         <ul className="cash-list" aria-label="Spends you logged this month">
           {[...s.cashSpends].reverse().map(r => (
             <li key={r.time}>
-              <span>{r.merchant}<small>{new Date(r.time).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}{r.typed && ' · online'}</small></span>
+              <span>{r.merchant}<small>{new Date(r.time).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}{r.typed && ` · online${r.from ? ` · ${BANKS[r.from] || r.from}` : ''}`}</small></span>
               <b>−{money(r.paise, true)}</b>
               <button type="button" className="cash-del" onClick={() => deleteCash(r.time)} aria-label={`Delete ${r.merchant} ${money(r.paise, true)}`}>
                 <X size={18} aria-hidden="true" />
@@ -138,7 +155,7 @@ function Fix({ bank, setBalance, label, placeholder = 'Wrong? Type real balance'
  * For banks whose SMS never state a balance (SBI), so they'd never appear above: name + today's balance.
  * Payments logged after that come off it automatically.
  */
-function AddAccount({ setBalance }) {
+function AddAccount({ setBalance, onAdded }) {
   const [name, setName] = useState('')
   const [amt, setAmt] = useState('')
   const [err, setErr] = useState('')
@@ -153,11 +170,12 @@ function AddAccount({ setBalance }) {
     success()
     setName('')
     setAmt('')
+    onAdded?.(key)
   }
   return (
     <form className="acct-add" onSubmit={submit} noValidate>
       <p className="acct-add-title">Bank missing? Add it</p>
-      <p className="acct-add-hint">For banks that don't show a balance in their SMS, like SBI.</p>
+      <p className="acct-add-hint">A bank you haven't paid from yet, or one whose SMS never shows a balance (like SBI).</p>
       <div className="acct-add-row">
         <label className="sr" htmlFor="add-bank">Bank name</label>
         <input id="add-bank" placeholder="SBI" value={name} maxLength={20} onChange={e => setName(e.target.value)} />
@@ -171,7 +189,7 @@ function AddAccount({ setBalance }) {
   )
 }
 
-function Accounts({ s, setBalance }) {
+function Accounts({ s, setBalance, removeAccount }) {
   return (
     <Card tone="cream" className="accounts-card">
       <Kicker>Really in your accounts</Kicker>
@@ -183,6 +201,11 @@ function Accounts({ s, setBalance }) {
             <b>{money(a.bal, true)}</b>
             <small>as of {new Date(a.time).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}</small>
             <Fix bank={a.bank} setBalance={setBalance} />
+            {a.added && (
+              <button type="button" className="text-btn acct-remove" onClick={() => removeAccount(a.bank)}>
+                Remove {BANKS[a.bank] || a.bank}
+              </button>
+            )}
           </li>
         ))}
         {s.cash > 0 && <li><span>Cash in hand</span><b>{money(s.cash, true)}</b><small>ATM withdrawals minus cash you logged</small></li>}
@@ -197,7 +220,7 @@ function Accounts({ s, setBalance }) {
 }
 
 export default function Budget() {
-  const { s, setBalance, addCash, deleteCash } = useLedger()
+  const { s, setBalance, removeAccount, addCash, deleteCash } = useLedger()
   const over = s.left < 0
 
   return (
@@ -218,6 +241,7 @@ export default function Budget() {
           <h2 className="card-title">No balance yet</h2>
           <p>Your budget comes from the real balance in your bank SMS. It shows up after your next bank transaction. You can also set a monthly cap.</p>
           <Brush to="/settings">Set a budget</Brush>
+          <AddAccount setBalance={setBalance} />
         </Card>
       ) : (
         <>
@@ -237,7 +261,7 @@ export default function Budget() {
 
           <Meme pool={pool([budgetMood(s.used, s.budget > 0)], s.used)} className="meme-row" />
 
-          <Accounts s={s} setBalance={setBalance} />
+          <Accounts s={s} setBalance={setBalance} removeAccount={removeAccount} />
           <CashCard s={s} addCash={addCash} deleteCash={deleteCash} setBalance={setBalance} />
 
           <Stats items={[

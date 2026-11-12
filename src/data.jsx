@@ -104,8 +104,8 @@ export function LedgerProvider({ children }) {
       localStorage.setItem(NAMES, JSON.stringify(n))
       setNames(n)
     },
-    async addCash(paise, note, online = false) {
-      await Ledger.addCash({ paise, note, online })
+    async addCash(paise, note, online = false, bank = '') {
+      await Ledger.addCash({ paise, note, online, bank })
       await reload()
     },
     async deleteCash(time) {
@@ -114,6 +114,10 @@ export function LedgerProvider({ children }) {
     },
     async setBalance(bank, paise) {
       await Ledger.setBalance({ bank, paise })
+      await reload()
+    },
+    async removeAccount(bank) {
+      await Ledger.removeAccount({ bank })
       await reload()
     },
     async save(settings) {

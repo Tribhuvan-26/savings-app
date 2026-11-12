@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { thud } from './peak/feel'
 
-// Rendered from src/logo.js by scripts/icons.mjs (same art as the launcher icon).
+// Rendered from resources/logo-source.jpg by scripts/icons.py (same art as the launcher icon).
 const LOGO = `${import.meta.env.BASE_URL}logo.png`
 
-/** The comic POW! logo, same art as the launcher icon. Decorative: the link around it has the name. */
+/** The app logo (ornament), same art as the launcher icon. Decorative: the link around it has the name. */
 export function LogoMark({ size = 40, className = '' }) {
   return <img src={LOGO} width={size} height={size} alt="" className={`mark ${className}`} draggable="false" />
 }

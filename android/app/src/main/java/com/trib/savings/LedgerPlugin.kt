@@ -32,7 +32,10 @@ class LedgerPlugin : Plugin() {
             val self = selfTransfers(context, rows)
             val accts = JSArray()
             acc.forEach { (bank, r) ->
-                accts.put(JSObject().apply { put("bank", bank); put("bal", r.bal); put("time", r.time) })
+                accts.put(JSObject().apply {
+                    put("bank", bank); put("bal", r.bal); put("time", r.time)
+                    put("added", isAdded(context, bank, rows)) // typed in by hand: removable
+                })
             }
             rows.forEach { r ->
                 arr.put(JSObject().apply {
@@ -44,7 +47,8 @@ class LedgerPlugin : Plugin() {
                     put("self", r in self)
                     put("atm", isAtm(r)) // money into your pocket, not spending
                     put("cash", r.bank == CASH) // a cash spend you typed in (deletable)
-                    put("typed", r.bank == TYPED) // an online spend you typed in (deletable)
+                    put("typed", isTyped(r)) // an online spend you typed in (deletable)
+                    typedFrom(r)?.let { put("from", it) } // the bank you said it was paid from
                 })
             }
             call.resolve(JSObject().apply {
@@ -60,13 +64,14 @@ class LedgerPlugin : Plugin() {
         }.start()
     }
 
-    /** You spent: { paise: 4000, note: "chai", online: false }. online = paid by UPI/card but nothing reported it. */
+    /** You spent: { paise: 4000, note: "chai", online: false, bank: "SBI" }. online = paid by UPI/card but nothing reported it. */
     @PluginMethod
     fun addCash(call: PluginCall) {
         val paise = call.long("paise")
         if (paise == null || paise <= 0) return call.reject("a positive paise amount needed")
         val online = call.getBoolean("online", false) == true
-        Thread { addCash(context, paise, call.getString("note", "")!!, online); call.resolve() }.start()
+        val bank = call.getString("bank", "") ?: ""
+        Thread { addCash(context, paise, call.getString("note", "")!!, online, bank); call.resolve() }.start()
     }
 
     /** Undo a typed cash spend: { time }. */
@@ -83,6 +88,15 @@ class LedgerPlugin : Plugin() {
         val paise = call.long("paise")
         if (bank.isNullOrBlank() || paise == null || paise < 0) return call.reject("bank and a non-negative paise amount needed")
         setBalance(context, bank, paise)
+        call.resolve()
+    }
+
+    /** Remove a bank you added by hand: { bank: "SBI" }. */
+    @PluginMethod
+    fun removeAccount(call: PluginCall) {
+        val bank = call.getString("bank")
+        if (bank.isNullOrBlank()) return call.reject("bank needed")
+        removeAccount(context, bank)
         call.resolve()
     }
 
