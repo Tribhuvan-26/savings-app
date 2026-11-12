@@ -12,7 +12,10 @@ NOTES="${2:?add a one-line description of the update}"
 [ -f "$HOME/.savings-release/keystore.properties" ] || { echo "no release key in ~/.savings-release: updates would not install over the old app"; exit 1; }
 [ -z "$(git status --porcelain)" ] || { echo "commit or stash your changes first"; exit 1; }
 git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null && { echo "v$VERSION already exists"; exit 1; }
-case "$NOTES" in "what changed"|"notes"|"") echo "write real release notes: friends see them in the update banner"; exit 1 ;; esac
+# Notes show in everyone's update banner: refuse template text like "<what's new>" or "what changed".
+shopt -s nocasematch
+case "$NOTES" in *"<"*|*">"*|*"what changed"*|*"what's new"*|"notes"|"") echo "write real release notes in your own words: friends see them in the update banner"; exit 1 ;; esac
+shopt -u nocasematch
 LAST=$(git describe --tags --abbrev=0 2>/dev/null || true)
 # Only the version bump since the last release = nothing new to ship.
 if [ -n "$LAST" ] && [ -z "$(git diff --name-only "$LAST" HEAD -- . ':!android/app/build.gradle')" ]; then
