@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { Link } from 'react-router-dom'
 import { thud } from './peak/feel'
+import { drawMeme } from './memes'
 import { Art } from './ui'
 
 /** The app logo: the ₹ coin, same shapes as the launcher icon (scripts/icons.py). Decorative: the link around it has the name. */
@@ -45,26 +46,24 @@ export function CoinRain({ count = 14 }) {
   )
 }
 
-const pick = (n, not) => { if (n < 2) return 0; let i; do { i = Math.floor(Math.random() * n) } while (i === not); return i }
-
 /**
- * An internet meme from `pool` (src/memes.js), top/bottom caption style. A random one each visit; tap for another.
- * If an image can't load (offline), the captions still show on an ink card.
+ * An internet meme from `pool` (src/memes.js), top/bottom caption style. Dealt like a shuffled deck (drawMeme):
+ * no repeats until you've seen them all. Tap for another. If an image can't load (offline), the captions still show.
  */
 export function Meme({ pool, tilt = -2, className = '' }) {
-  // The next meme is picked ahead and downloaded in the background, so a tap shows it instantly.
-  const [[i, nxt], setPair] = useState(() => { const a = pick(pool.length); return [a, pick(pool.length, a)] })
+  // The next meme is drawn ahead and downloaded in the background, so a tap shows it instantly.
+  const [[m, nxt], setPair] = useState(() => { const a = drawMeme(pool); return [a, drawMeme(pool, a)] })
   const [broken, setBroken] = useState(false)
   const [loaded, setLoaded] = useState(false)
-  const m = pool[i % pool.length]
-  const upcoming = pool[nxt % pool.length]?.src
+  const i = m.id ?? m.src
+  const upcoming = nxt?.src
   useEffect(() => {
     if (!upcoming) return
     const im = new Image()
     im.referrerPolicy = 'no-referrer'
     im.src = upcoming
   }, [upcoming])
-  const next = () => { thud(); setBroken(false); setLoaded(false); setPair(([, b]) => [b, pick(pool.length, b)]) }
+  const next = () => { thud(); setBroken(false); setLoaded(false); setPair([nxt, drawMeme(pool, nxt)]) }
   return (
     <div className={`meme-wrap ${className}`}>
     <motion.figure className="meme" style={{ rotate: tilt }}

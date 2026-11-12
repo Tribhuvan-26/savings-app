@@ -81,6 +81,8 @@ function MyMemes() {
         <Brush type="submit">{busy ? 'Adding…' : 'Add meme'}</Brush>
       </form>
       {list.length > 0 && (
+        <details className="my-meme-manage">
+        <summary>Manage your memes ({list.length})</summary>
         <ul className="my-meme-list" aria-label="Your memes">
           {list.map(m => (
             <li key={m.id}>
@@ -93,6 +95,7 @@ function MyMemes() {
             </li>
           ))}
         </ul>
+        </details>
       )}
     </Card>
   )

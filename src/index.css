@@ -977,3 +977,12 @@ input::placeholder, textarea::placeholder { color: var(--grey); opacity: 1; }
 }
 .my-meme-top { top: 6px; padding-right: 40px; } /* clear of the delete button */
 .my-meme-bottom { bottom: 6px; }
+.my-meme-manage { margin-top: 18px; }
+.my-meme-manage summary {
+  display: flex; align-items: center; min-height: 44px; cursor: pointer; list-style: none;
+  font: 700 13px/1 var(--f-mono); letter-spacing: 0.08em; text-transform: uppercase; text-decoration: underline; text-underline-offset: 4px;
+}
+.my-meme-manage summary::-webkit-details-marker { display: none; }
+.my-meme-manage summary::after { content: '▸'; margin-left: 8px; text-decoration: none; transition: rotate 0.15s; }
+.my-meme-manage[open] summary::after { rotate: 90deg; }
+.my-meme-manage .my-meme-list { margin-top: 10px; }

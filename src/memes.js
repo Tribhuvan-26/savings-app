@@ -80,17 +80,72 @@ export const MEMES = [
   { mood: 'any', src: img('37g1br.png'), alt: 'Thanos: "Perhaps I treated you too harshly"', top: 'me to my budget on the 1st' },
   { mood: 'any', src: img('40m73k.png'), alt: 'Green Goblin: "You and I are not so different"', top: 'me to my broke friend' },
   { mood: 'any', src: img('19e54v.jpg'), alt: 'Black Widow, arms crossed, not impressed', top: '"let\'s split it equally"' },
+
+  // ── batch 3 ──
+  { mood: 'good', src: img('30zvo.jpg'), alt: 'Tony Stark on stage, arms wide', top: 'me after a no-spend week' },
+  { mood: 'good', src: img('5kmp8s.png'), alt: 'Doctor Strange: "Feels weird, but I\'ll allow it"', top: '₹0 delivery fee' },
+  { mood: 'good', src: img('8n91ax.jpg'), alt: 'Superman smiling', top: 'when a friend pays me back' },
+
+  { mood: 'mid', src: img('5izijf.png'), alt: 'Ultron: "You\'re unbearably naive"', top: '"i\'ll start saving next month"' },
+  { mood: 'mid', src: img('34d8en.png'), alt: 'Aunt May: "Shame on you"', top: 'ordering food 3 times today' },
+  { mood: 'mid', src: img('3howrg.png'), alt: 'Commissioner Gordon: "Wait! WAIT!"', top: 'me before paying ₹2,000 for shoes' },
+
+  { mood: 'bad', src: img('1o9p0u.jpg'), alt: 'Alfred talking to Bruce Wayne', top: 'food apps at 2am', bottom: 'some men just want to watch the world burn' },
+  { mood: 'bad', src: img('135qld.jpg'), alt: 'Nick Fury pointing, angry', top: 'who ordered food again?' },
+  { mood: 'bad', src: img('7p483p.jpg'), alt: 'Miles Morales shocked', top: 'my monthly food spend' },
+  { mood: 'bad', src: img('4k36pv.png'), alt: 'Doc Ock: "It can\'t be stopped. It\'s self-sustaining now"', top: 'my food delivery habit' },
+
+  { mood: 'broke', src: img('5kozbh.jpg'), alt: 'Doc Ock turning around', top: 'my credit card bill', bottom: 'hello, peter' },
+
+  { mood: 'saving', src: img('3138fk.jpg'), alt: 'Thanos: "I am inevitable." Tony: "And I am Iron Man"', labels: [['my expenses', 50, 12], ['my savings jar', 50, 62]] },
+
+  { mood: 'nosave', src: img('2wxigk.jpg'), alt: 'Red Skull: "I guide others to a treasure I cannot possess"', top: 'me telling friends to save money' },
+
+  { mood: 'any', src: img('1a8qy1.jpg'), alt: 'Tony Stark relieved, hand on chest', top: 'the salary SMS finally came' },
+  { mood: 'any', src: img('3cz6yc.png'), alt: 'Captain America running past Falcon: "On your left"', labels: [['my salary', 28, 62], ['my expenses', 72, 50]] },
+  { mood: 'any', src: img('4ahuab.png'), alt: 'Peter Parker: "Happy, is that you?"', top: '₹500 in my old jeans' },
+  { mood: 'any', src: img('5klcv7.png'), alt: 'Lex Luthor thinking hard', top: 'me working out if i can afford it' },
+  { mood: 'any', src: img('3wjlca.jpg'), alt: 'Black Panther arms crossed: "Wakanda forever"', top: 'me refusing to pay a delivery fee' },
+  { mood: 'any', src: img('8z1efp.png'), alt: 'Homelander staring', top: 'me seeing ₹300 for a coffee' },
+  { mood: 'any', src: img('2yd7k8.jpg'), alt: 'Drax pointing and laughing', top: 'me when my friend is broker than me' },
+  { mood: 'any', src: img('34kgtz.jpg'), alt: '"You shouldn\'t be here." "Neither should you"', top: 'me and ₹5,000 at a mall' },
 ]
 
 /** Moods for how the month is going (`used` = share of your money spent). */
 export const budgetMood = (used, hasBudget) =>
   !hasBudget || used > 1 ? 'broke' : used > 0.8 ? 'bad' : used > 0.5 ? 'mid' : 'good'
 
-/** All memes for these moods (plus the 'any' ones and your own), with {pct} filled in. */
+/**
+ * Every meme plus your own, with {pct} filled in. Ones that fit these moods (and 'any', and yours) are marked
+ * `fits`: drawMeme deals those first, then the rest, so a page never loops over just its few mood memes.
+ */
 export function pool(moods, pct = 0) {
   const fill = s => s?.replace('{pct}', `${Math.round(pct * 100)}%`)
-  return [...MEMES.filter(m => m.mood === 'any' || moods.includes(m.mood)), ...myMemes()]
-    .map(m => ({ ...m, top: fill(m.top), bottom: fill(m.bottom) }))
+  return [...MEMES, ...myMemes()].map(m => ({
+    ...m, top: fill(m.top), bottom: fill(m.bottom), fits: m.mood === 'any' || moods.includes(m.mood),
+  }))
+}
+
+// Shuffled deck: memes you've seen are skipped until every one has been shown (mood-fitting ones first),
+// remembered across pages and app launches, so nothing comes back after one or two taps.
+const SEEN = 'savings.memeSeen'
+const keyOf = m => m.id ?? m.src
+/** A random meme from `pool` you haven't seen lately (never `avoid`). Marks it seen. */
+export function drawMeme(pool, avoid) {
+  if (!pool.length) return null
+  let seen = []
+  try { seen = JSON.parse(localStorage.getItem(SEEN)) || [] } catch { /* start fresh */ }
+  const fresh = m => !seen.includes(keyOf(m)) && keyOf(m) !== keyOf(avoid ?? {})
+  const unseen = pool.filter(fresh)
+  let left = unseen.some(m => m.fits !== false) ? unseen.filter(m => m.fits !== false) : unseen // mood ones first
+  if (!left.length) { // whole pool seen: new round, forget this pool's memes
+    const mine = new Set(pool.map(keyOf))
+    seen = seen.filter(k => !mine.has(k))
+    left = pool.filter(m => pool.length < 2 || keyOf(m) !== keyOf(avoid ?? {}))
+  }
+  const m = left[Math.floor(Math.random() * left.length)]
+  localStorage.setItem(SEEN, JSON.stringify([...seen, keyOf(m)].slice(-300)))
+  return m
 }
 
 // Your own memes: picked from the gallery, shrunk to a small JPEG and kept on the phone in localStorage
