@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion } from 'motion/react'
 import { Search } from 'lucide-react'
 import { money, useLedger } from '../data'
-import { Art, Empty, Kicker, Note, Reveal, Stack, item } from '../ui'
+import { Art, Empty, Kicker, Note, Reveal, Stack, TxTag, item } from '../ui'
 
 const FILTERS = [['all', 'All'], ['out', 'Spent'], ['in', 'Received']]
 
@@ -64,16 +64,16 @@ export default function Activity() {
             <tr><th scope="col">Merchant</th><th scope="col">Time</th><th scope="col">Saved</th><th scope="col" className="num-col">Amount</th></tr>
           </thead>
           {groupByDay(rows).map(([label, items]) => {
-            const out = items.filter(r => r.debit).reduce((a, r) => a + r.paise, 0)
+            const out = items.filter(r => r.debit && !r.self && !r.atm).reduce((a, r) => a + r.paise, 0)
             return (
               <tbody key={label}>
                 <tr className="day-row">
-                  <th scope="rowgroup" colSpan={3}>{label}</th>
+                  <th scope="rowgroup">{label}</th><td /><td />
                   <td className="num-col">{out > 0 && `−${money(out)}`}</td>
                 </tr>
                 {items.map(r => (
                   <motion.tr key={`${r.time}${r.merchant}`} variants={item} initial="hidden" animate="show">
-                    <td><span className="cell-who"><span className={`av${r.debit ? '' : ' av-in'}`} aria-hidden="true">{r.merchant[0]}</span><b>{r.merchant}</b></span></td>
+                    <td><span className="cell-who"><span className={`av${r.debit ? '' : ' av-in'}`} aria-hidden="true">{r.merchant[0]}</span><b>{r.merchant}<TxTag r={r} /></b></span></td>
                     <td className="muted">{new Date(r.time).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })}</td>
                     <td className="red">{r.saved > 0 ? `+${money(r.saved, true)}` : ''}</td>
                     <td className={`num-col tx-amt${r.debit ? '' : ' red'}`}>

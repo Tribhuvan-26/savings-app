@@ -1,5 +1,6 @@
 import { motion } from 'motion/react'
 import { money, useLedger } from '../data'
+import { CoinRain, Meme, jarMeme } from '../fun'
 import { Art, Card, CountUp, Empty, Kicker, Note, Reveal, SectionHead, Stack, Stats, Sticker, item, list } from '../ui'
 
 export default function Jar() {
@@ -29,6 +30,7 @@ export default function Jar() {
             {s.goal ? `${Math.round(frac * 100)}% of your ${money(s.goal)} goal${s.jar >= s.goal ? ' · goal reached!' : ''}` : 'Set a goal in Settings'}
           </p>
           <div className="halftone jt-dots" aria-hidden="true" />
+          {s.jar > 0 && <CoinRain />}
         </Card>
 
         <Card tone="cream" className="jar-gauge-card">
@@ -46,6 +48,8 @@ export default function Jar() {
         ['Avg per payment', money(Math.round(s.avgDrop), true)],
         ['Drops this month', String(s.recent.filter(r => r.saved > 0 && new Date(r.time).getMonth() === s.now.getMonth()).length)],
       ]} />
+
+      <Meme {...jarMeme(s.jar)} tilt={2} className="meme-row" />
 
       <SectionHead n="03" title="Latest drops" />
       {drops.length ? (

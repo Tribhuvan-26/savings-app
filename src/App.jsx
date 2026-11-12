@@ -2,7 +2,8 @@ import { useEffect } from 'react'
 import { HashRouter, Link, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { AnimatePresence, MotionConfig, motion } from 'motion/react'
 import { LedgerProvider, isNative, useLedger } from './data'
-import { Art } from './ui'
+import { LogoMark } from './fun'
+import Dock from './peak/Dock'
 import Home from './pages/Home'
 import Activity from './pages/Activity'
 import Jar from './pages/Jar'
@@ -27,7 +28,8 @@ function Shell() {
       <header className="site-head">
         <div className="wrap head-row">
           <Link to="/" className="logo" aria-label="Savings home">
-            SAVINGS <Art name="coin" size={34} className="logo-art" />
+            <LogoMark size={48} className="logo-art" />
+            <span>SAVINGS<span className="caret" aria-hidden="true">_</span></span>
           </Link>
           <nav className="nav" aria-label="Main">
             {PAGES.map(([to, label]) => (
@@ -80,6 +82,7 @@ function Shell() {
           </div>
         </div>
       </footer>
+      <Dock pages={PAGES} />
     </>
   )
 }

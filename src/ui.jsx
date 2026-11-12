@@ -177,13 +177,19 @@ export function CountUp({ value, exact }) {
   return <span ref={ref}>{money(reduce ? value : 0, exact)}</span>
 }
 
+/** Little label for money that's not plain spending/income. */
+export function TxTag({ r }) {
+  const t = r.self ? 'Self transfer' : r.atm ? 'To cash' : r.cash ? 'Cash' : null
+  return t && <span className="self-tag">{t}</span>
+}
+
 export function TxRow({ r, right, sub }) {
   const time = new Date(r.time).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })
   return (
     <motion.li className="tx" variants={item}>
       <span className={`av${r.debit ? '' : ' av-in'}`} aria-hidden="true">{r.merchant[0]}</span>
       <span className="tx-who">
-        <b>{r.merchant}</b>
+        <b>{r.merchant}<TxTag r={r} /></b>
         <small>{sub ?? <>{time}{r.saved > 0 && <> · <span className="red">+{money(r.saved, true)} saved</span></>}</>}</small>
       </span>
       {right ?? (

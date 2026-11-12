@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { CircleAlert, ShieldCheck } from 'lucide-react'
-import { isNative, useLedger } from '../data'
+import { isNative, openNotifAccess, useLedger } from '../data'
 import { Art, Brush, Card, Kicker, Note, Reveal, Stack } from '../ui'
+import { success } from '../peak/feel'
 
 function Field({ id, label, hint, error, prefix, suffix, ...input }) {
   const described = [hint && `${id}-hint`, error && `${id}-err`].filter(Boolean).join(' ') || undefined
@@ -21,8 +22,8 @@ function Field({ id, label, hint, error, prefix, suffix, ...input }) {
 }
 
 export default function Settings() {
-  const { settings, save, smsAccess } = useLedger()
-  const [f, setF] = useState({ budget: settings.budget, goal: settings.goal, pct: settings.pct, sheet: settings.sheet })
+  const { settings, save, smsAccess, notifAccess } = useLedger()
+  const [f, setF] = useState({ budget: settings.budget, goal: settings.goal, pct: settings.pct, sheet: settings.sheet, me: settings.me })
   const [rule, setRule] = useState(settings.pct ? 'pct' : 'round')
   const [err, setErr] = useState({})
   const [toast, setToast] = useState(null)
@@ -36,7 +37,7 @@ export default function Settings() {
 
   async function submit(e) {
     e.preventDefault()
-    const v = { budget: f.budget.trim(), goal: f.goal.trim(), pct: rule === 'pct' ? f.pct.trim() : '', sheet: f.sheet.trim() }
+    const v = { budget: f.budget.trim(), goal: f.goal.trim(), pct: rule === 'pct' ? f.pct.trim() : '', sheet: f.sheet.trim(), me: f.me.trim() }
     const errors = {}
     if (!/^\d*$/.test(v.budget)) errors.budget = 'Whole rupees only, like 15000'
     if (!/^\d*$/.test(v.goal)) errors.goal = 'Whole rupees only, like 2000'
@@ -48,6 +49,7 @@ export default function Settings() {
       return
     }
     await save(v)
+    success()
     setToast('Settings saved')
   }
 
@@ -68,8 +70,12 @@ export default function Settings() {
         <Card tone="cream" className="form-card">
           <form className="form" onSubmit={submit} noValidate>
             <h2 className="card-title">Budget &amp; savings</h2>
-            <Field id="budget" label="Monthly budget" prefix="₹" inputMode="numeric" placeholder="15000"
-              value={f.budget} onChange={set('budget')} error={err.budget} hint="You get a warning once you've spent 80% of it." />
+            <Field id="budget" label="Monthly cap (optional)" prefix="₹" inputMode="numeric" placeholder="15000"
+              value={f.budget} onChange={set('budget')} error={err.budget} hint="Your budget is the money really in your accounts. Set a cap to spend less than that. Warning at 80%." />
+
+            <Field id="me" label="Your name, as banks show it" autoComplete="name" placeholder="RAHUL KUMAR"
+              value={f.me} onChange={set('me')}
+              hint="Money to or from this name is a self transfer: it moves your balances but doesn't count as spending or income." />
 
             <fieldset className="field">
               <legend>Savings rule</legend>
@@ -117,6 +123,13 @@ export default function Settings() {
                 : smsAccess ? 'SMS access on · reading automatically'
                 : 'SMS access off · allow it in Android Settings → Apps → Savings → Permissions'}
             </p>
+            {isNative && (
+              <p className={`status ${notifAccess ? 'status-on' : 'status-off'}`}>
+                <span className="status-dot" aria-hidden="true" />
+                {notifAccess ? 'UPI names on · senders named from GPay, PhonePe, Paytm…'
+                  : <>UPI names off · <button type="button" className="text-btn" onClick={openNotifAccess}>allow notification access</button> so money you receive shows who sent it</>}
+              </p>
+            )}
           </Card>
           <Reveal as="p" className="privacy">
             <ShieldCheck size={18} aria-hidden="true" />
